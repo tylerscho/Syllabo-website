@@ -127,6 +127,12 @@ a { color: var(--accent); }
 .hm .label { display: block; font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hm .value { font-family: var(--display); font-weight: 800; font-stretch: 112%; font-variation-settings: "wdth" 112; font-size: 30px; letter-spacing: -.03em; line-height: 1; }
 .hm .basis { font-size: 12px; color: var(--muted); }
+.health.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.search { width: 100%; max-width: 340px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--ring); background: var(--page); transition: border-color .2s, box-shadow .25s; }
+.search:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--s1-fill); }
+.tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0 0 14px; }
+.scroll-x { overflow-x: auto; }
+.scroll-x table { min-width: 980px; }
 .caption { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
 .caption b { color: var(--ink); font-weight: 600; }
 .stamp { font: 500 11px/1.4 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 10px; }
@@ -182,6 +188,10 @@ th { text-align: left; font: 500 10.5px/1.3 var(--body); letter-spacing: .08em; 
 td { padding: 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
 tr:last-child td { border-bottom: 0; }
 td.num, th.num { text-align: right; }
+th .sort { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; transition: color .2s; }
+th .sort:hover, th[aria-sort="ascending"] .sort, th[aria-sort="descending"] .sort { color: var(--ink); }
+th .sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+th .arrow { display: inline-block; min-width: .8em; color: var(--accent); }
 .cell { display: inline-block; min-width: 58px; text-align: center; border-radius: 999px; padding: 2px 8px; font-weight: 500; }
 .pending { color: var(--grey); font-style: italic; font-weight: 400; }
 .stack { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px; }
@@ -204,7 +214,7 @@ td.num, th.num { text-align: right; }
   .bar { flex-wrap: wrap; }
   .tabs { order: 3; flex-basis: 100%; justify-content: flex-start; }
   .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .health { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .health, .health.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hm + .hm { border-left: 0; }
   .hm { border-top: 1px solid var(--grid); }
   .kpi:nth-child(4) { border-left: 0; }
@@ -329,6 +339,7 @@ tbody tr:hover { background: var(--wash); }
         <button class="tab" data-page="sessions">Sessions</button>
         <button class="tab" data-page="problems">Problems</button>
         <button class="tab" data-page="feedback">Feedback <span class="count hidden" id="fb-count"></span></button>
+        <button class="tab" data-page="accounts" id="accounts-tab">Accounts</button>
         <button class="tab" data-page="team">Team</button>
       </nav>
       <div class="bar-end">
@@ -359,7 +370,7 @@ tbody tr:hover { background: var(--wash); }
   <footer class="foot-note">
     <span id="who"></span>
     <span id="live-note">Updates every 2 minutes while open</span>
-    <span>Keys 1 to 7 switch pages</span>
+    <span>Number keys switch pages</span>
     <span>Counts are events, not people. No student can be identified from them.</span>
   </footer>
 </div>
@@ -422,7 +433,8 @@ async function token() {
   keep(j, sess.email);
   return j.access_token;
 }
-async function rpc(name, body) {
+/** `opts.optional`: a "Not allowed" is this call's own answer, not a sign the account left the team. */
+async function rpc(name, body, opts = {}) {
   const r = await fetch(`${CFG.url}/rest/v1/rpc/${name}`, {
     method: "POST",
     headers: { apikey: CFG.anonKey, Authorization: `Bearer ${await token()}`, "Content-Type": "application/json", "X-Syllabo-Version": VERSION_HEADER },
@@ -433,7 +445,7 @@ async function rpc(name, body) {
   if (!r.ok) {
     const msg = (j && (j.message || j.hint)) || `Request failed (${r.status}).`;
     if (r.status === 401) { saveSession(null); showSignin("Your sign-in ran out. Sign in again."); }
-    if (msg === "Not allowed") { showJoin(); throw new Error("Not on the team yet."); }
+    if (msg === "Not allowed" && !opts.optional) { showJoin(); throw new Error("Not on the team yet."); }
     throw new Error(msg);
   }
   return j;
@@ -508,6 +520,8 @@ function startApp() {
   document.getElementById("who").textContent = DEMO ? "Demo data" : (state.session?.email || "");
   load();
 }
+/** The pages whose tabs are showing, in order. */
+const visiblePages = () => [...document.querySelectorAll(".tab:not(.hidden)")].map((b) => b.dataset.page);
 // Each page has its own link (#setup, #feedback, ...), so the back button and bookmarks work.
 function setPage(page, fromHash) {
   if (!TITLES[page]) page = "overview";
@@ -524,7 +538,7 @@ addEventListener("hashchange", () => setPage(location.hash.slice(1), true));
 addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || /input|textarea|select/i.test(e.target.tagName)) return;
   if (document.getElementById("app").classList.contains("hidden")) return;
-  const pages = Object.keys(TITLES), i = Number(e.key) - 1;
+  const pages = visiblePages(), i = Number(e.key) - 1;
   if (i >= 0 && i < pages.length) setPage(pages[i]);
 });
 document.querySelectorAll("#range button").forEach((b) => b.addEventListener("click", () => {
@@ -556,14 +570,18 @@ async function load(quiet) {
     if (DEMO) {
       state.data = demoData(state.days); state.feedback = demoFeedback();
       state.team = { admins: [{ user_id: "1", email: "tyler@example.com", added_at: new Date().toISOString(), me: true, owner: true }, { user_id: "2", email: "partner@example.com", added_at: new Date().toISOString(), me: false }], invites: [] };
+      state.accounts = demoAccounts();
     }
     else {
       const [data, fb, team] = await Promise.all([rpc("usage_dashboard", { p_days: state.days, p_include_test: state.includeTest }),
         rpc("feedback_list", { p_status: null }), rpc("admin_team", {}).catch(() => null)]);
       state.data = data; state.feedback = fb || []; state.team = team;
+      state.accountsError = "";
+      state.accounts = await rpc("admin_accounts", {}, { optional: true }).catch((x) => { state.accountsError = x.message; return null; });
     }
     state.loadedAt = Date.now();
     if (!quiet) state.animate = true;
+    if (quiet && document.activeElement?.classList.contains("search")) return;
     const fresh = new Date(state.data.generated_at || Date.now());
     document.getElementById("stamp").textContent = `${dayLabel(state.data.from, true)} to ${dayLabel(state.data.to, true)} (UTC) · updated ${fresh.toLocaleTimeString()}${state.includeTest ? " · including test builds" : " · App Store builds only"}`;
     render();
@@ -575,7 +593,7 @@ async function load(quiet) {
   } finally { main.classList.remove("loading"); }
 }
 
-const TITLES = { overview: "Overview", setup: "Setup funnel", retention: "Coming back", sessions: "Sessions", problems: "Problems", feedback: "Feedback", team: "Team" };
+const TITLES = { overview: "Overview", setup: "Setup funnel", retention: "Coming back", sessions: "Sessions", problems: "Problems", feedback: "Feedback", accounts: "Accounts", team: "Team" };
 // One line under each title: the question the page answers.
 const LEDES = {
   overview: "How Syllabo is doing at a glance. Start with Weekly health: five numbers that cover a new student's whole journey.",
@@ -584,18 +602,19 @@ const LEDES = {
   sessions: "How study sessions go: how many are finished, why some end early, and how first-week answers are marked.",
   problems: "Things that failed in the app, by type. A new code, or a jump after a release, comes first.",
   feedback: "Notes students chose to send. Read the new ones, reply where there is a contact, then mark them done.",
+  accounts: "Everyone with an online account: who they are, when they last used Syllabo and how much. Keep these details inside the team.",
   team: "Who can see this dashboard, and how to add someone.",
 };
 function render() {
   const d = state.data; if (!d) return;
   document.getElementById("page-title").textContent = TITLES[state.page];
   document.getElementById("page-lede").textContent = LEDES[state.page];
-  const order = Object.keys(TITLES), kicker = document.getElementById("page-kicker");
+  const order = visiblePages(), kicker = document.getElementById("page-kicker");
   kicker.replaceChildren(h("i"), h("b", {}, String(order.indexOf(state.page) + 1).padStart(2, "0")), ` ${TITLES[state.page]}`);
   const newCount = state.feedback.filter((f) => f.status === "new").length;
   const badge = document.getElementById("fb-count");
   badge.textContent = newCount; badge.classList.toggle("hidden", newCount === 0);
-  const noRange = state.page === "feedback" || state.page === "team";
+  const noRange = state.page === "feedback" || state.page === "team" || state.page === "accounts";
   document.getElementById("range").classList.toggle("hidden", noRange);
   document.getElementById("test-label").classList.toggle("hidden", noRange);
   const c = document.getElementById("content"); c.replaceChildren();
@@ -608,7 +627,7 @@ function render() {
       state.includeTest ? "Try a longer range, or launch a Debug build with --usage-send."
                         : "Counts start with the first App Store release that includes them. To see our own testing, tick Show test builds.")));
   }
-  ({ overview, setup, retention, sessions, problems, feedback, team })[state.page](c, d);
+  ({ overview, setup, retention, sessions, problems, feedback, accounts, team })[state.page](c, d);
   moveInks();
   if (state.animate) { state.animate = false; playEntrance(c); }
 }
@@ -622,7 +641,7 @@ function moveInk(ink, el) {
 }
 function moveInks() {
   moveInk(document.querySelector(".tab-ink"), document.querySelector(".tab.on"));
-  moveInk(document.querySelector(".seg-ink"), document.querySelector("#range button.on"));
+  document.querySelectorAll(".seg").forEach((g) => moveInk(g.querySelector(".seg-ink"), g.querySelector("button.on")));
   document.querySelector(".tab.on")?.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 addEventListener("resize", moveInks);
@@ -717,10 +736,54 @@ function bars(rows, { suffix = "" } = {}) {
     h("div", { class: "track" }, h("div", { class: "fill", style: `width:${(r.value / max) * 100}%` })),
     h("div", { class: "val" }, fmt(r.value) + suffix, r.note ? h("span", { class: r.share ? "share" : "drop" }, r.note) : null))));
 }
-function table(head, rows, numCols = []) {
+/** What a cell sorts by when the caller gives nothing better: its number if it starts with one, else its text. */
+function cellKey(v) {
+  const t = (v instanceof Node ? v.textContent : String(v ?? "")).trim();
+  if (!t || t === "–") return null;
+  const n = /^[−-]?[\d,]*\.?\d+/.exec(t);
+  return n ? Number(n[0].replace(/,/g, "").replace("−", "-")) : t.toLowerCase();
+}
+/** A table whose headers sort it: click once, then again to reverse. Empty values always go last. The choice is kept in
+ *  state.sorts under `opts.id` (or the headings), so the quiet refresh doesn't undo it. `opts.keys[row][col]` overrides
+ *  what a cell sorts by; `opts.initial` is { col, dir } before any click; `opts.rowAttrs(i)` adds attributes to a row. */
+function table(head, rows, numCols = [], opts = {}) {
   if (!rows.length) return h("div", { class: "empty" }, "Nothing in this period yet.");
-  return h("table", {}, h("thead", {}, h("tr", {}, head.map((t, i) => h("th", { class: numCols.includes(i) ? "num" : null }, t)))),
-    h("tbody", {}, rows.map((r) => h("tr", {}, r.map((v, i) => h("td", { class: numCols.includes(i) ? "num" : null }, v))))));
+  const id = opts.id || head.join("|");
+  const keys = rows.map((r, i) => r.map((v, c) => (opts.keys?.[i]?.[c] !== undefined ? opts.keys[i][c] : cellKey(v))));
+  const body = h("tbody", {}, rows.map((r, i) => {
+    const tr = h("tr", opts.rowAttrs ? opts.rowAttrs(i) : {}, r.map((v, c) => h("td", { class: numCols.includes(c) ? "num" : null }, v)));
+    tr._keys = keys[i]; return tr;
+  }));
+  const ths = [];
+  const apply = () => {
+    const st = (state.sorts || {})[id] || opts.initial;
+    ths.forEach((th, c) => {
+      const on = st && st.col === c;
+      th.setAttribute("aria-sort", on ? (st.dir === "asc" ? "ascending" : "descending") : "none");
+      th.querySelector(".arrow").textContent = on ? (st.dir === "asc" ? "↑" : "↓") : "";
+    });
+    if (!st) return;
+    const sign = st.dir === "asc" ? 1 : -1;
+    [...body.children].sort((a, b) => {
+      const x = a._keys[st.col], y = b._keys[st.col];
+      if (x == null || y == null) return x == null && y == null ? 0 : x == null ? 1 : -1;
+      return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y))) * sign;
+    }).forEach((tr) => body.append(tr));
+  };
+  head.forEach((t, c) => {
+    const th = h("th", { class: numCols.includes(c) ? "num" : null },
+      h("button", { class: "sort", type: "button", title: `Sort by ${String(t).toLowerCase()}`, onclick: () => {
+        const cur = (state.sorts || {})[id] || opts.initial;
+        const first = keys.map((k) => k[c]).find((k) => k != null);
+        const dir = cur && cur.col === c ? (cur.dir === "asc" ? "desc" : "asc") : (typeof first === "number" ? "desc" : "asc");
+        state.sorts = { ...(state.sorts || {}), [id]: { col: c, dir } };
+        apply();
+      } }, t, h("span", { class: "arrow", "aria-hidden": "true" })));
+    ths.push(th);
+  });
+  const el = h("table", {}, h("thead", {}, h("tr", {}, ths)), body);
+  apply();
+  return el;
 }
 function deltaEl(cur, prev) {
   if (!prev && !cur) return h("div", { class: "delta" }, "no change");
@@ -954,6 +1017,74 @@ function feedback(c, d) {
         f.status !== "new" ? h("button", { class: "btn small", onclick: () => setStatus(f, "new") }, "Back to new") : null)));
   }
 }
+// ---------- accounts (admins; the server checks too) ----------
+const PROVIDER = { apple: "Apple", google: "Google", email: "Email" };
+function ago(iso) {
+  if (!iso) return "never";
+  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+  return days <= 0 ? "today" : days === 1 ? "yesterday" : days < 30 ? `${days} days ago` : new Date(iso).toLocaleDateString();
+}
+function accounts(c) {
+  const a = state.accounts;
+  if (!a) {
+    c.append(h("div", { class: "notice" }, h("div", {}, h("b", {}, "Accounts didn't load. "),
+      state.accountsError === "Not allowed" ? "This account can't see accounts yet: the owner needs to run the latest Tools/supabase/usage_accounts.sql."
+        : /admin_accounts/.test(state.accountsError || "") || !state.accountsError ? "Run Tools/supabase/usage_accounts.sql in the SQL Editor." : state.accountsError)));
+    return;
+  }
+  const m = (label, value, basis) => h("div", { class: "hm" }, h("div", { class: "label" }, label), h("div", { class: "value" }, fmt(value || 0)), h("div", { class: "basis" }, basis));
+  const bp = Object.entries(a.by_provider || {}).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${PROVIDER[k] || k} ${fmt(n)}`).join(" · ");
+  c.append(h("div", { class: "card" }, h("h3", {}, "Online accounts"),
+    h("p", { class: "sub" }, "Guests and accounts kept only on a phone aren't here. Active means signed in, backed up after studying, or used AI."),
+    h("div", { class: "health four" },
+      m("Accounts", a.total, bp || "None yet"),
+      m("Active today", a.active_1, "In the last 24 hours"),
+      m("Active this week", a.active_7, a.total ? `${Math.round((a.active_7 / a.total) * 100)}% of accounts` : "In the last 7 days"),
+      m("New this week", a.last_7, `${fmt(a.last_28 || 0)} in the last 28 days`))));
+
+  const t = (x) => (x ? new Date(x).getTime() : null);
+  const rows = a.accounts || [];
+  const hidden = h("span", { class: "note", title: "They hide this from friends in their privacy settings, so it never reaches the server." }, "hidden");
+  const asOf = (r) => (r.synced ? `As of their last backup, ${new Date(Number(r.synced) * 1000).toLocaleString()}` : "No backup yet");
+  const stale = (r) => !r.synced || Date.now() - Number(r.synced) * 1000 > 7 * 86400000;
+  const use = (r) => {
+    if (r.minutes_week == null && r.sessions_week == null) return r.synced ? hidden.cloneNode(true) : "–";
+    if (stale(r)) return h("span", { class: "note", title: asOf(r) }, "none recently");
+    return h("span", { title: `${fmt(r.minutes_week || 0)} min and ${fmt(r.sessions_week || 0)} sessions in 7 days. ${asOf(r)}.` },
+      `${fmt(Math.round((r.minutes_week || 0) / 7))} min a day · ${fmt(r.sessions_week || 0)} sessions`);
+  };
+  const useKey = (r) => (r.minutes_week == null && r.sessions_week == null ? null : stale(r) ? 0 : r.minutes_week || 0);
+  const sortKeys = rows.map((r) => [(r.name || "").toLowerCase() || null, (r.email || "").toLowerCase() || null, PROVIDER[r.provider] || r.provider || null,
+    t(r.joined), t(r.last_sign_in), t(r.last_active), useKey(r), r.streak ?? null, r.ai_week || 0]);
+  const tbl = table(["Student", "Email", "Signed up with", "Joined", "Last signed in", "Last active", "Use, last 7 days", "Streak", "AI uses, 7 days"],
+    rows.map((r) => [
+      h("div", {}, r.name || h("span", { class: "note" }, "No name"), r.username ? h("div", { class: "note" }, "@" + r.username) : null),
+      h("span", {}, r.email && PLAIN_EMAIL.test(r.email) ? h("a", { href: `mailto:${r.email}` }, r.email) : (r.email || "–"),
+        r.confirmed ? null : h("span", { class: "tag", style: "margin-left:6px", title: "Hasn't confirmed their email yet" }, "unconfirmed")),
+      PROVIDER[r.provider] || r.provider || "–",
+      new Date(r.joined).toLocaleDateString(),
+      h("span", { title: r.last_sign_in ? new Date(r.last_sign_in).toLocaleString() : "" }, ago(r.last_sign_in)),
+      h("span", { title: r.last_active ? new Date(r.last_active).toLocaleString() : "" }, ago(r.last_active)),
+      use(r),
+      r.streak == null ? (r.synced ? hidden.cloneNode(true) : "–") : h("span", { title: asOf(r) }, `${fmt(r.streak)} ${r.streak === 1 ? "day" : "days"}`),
+      fmt(r.ai_week || 0)]), [6, 7, 8],
+    { id: "accounts", keys: sortKeys, initial: { col: 3, dir: "desc" },
+      rowAttrs: (i) => ({ "data-q": [rows[i].name, rows[i].username, rows[i].email].filter(Boolean).join(" ").toLowerCase() }) });
+  const count = h("span", { class: "note" });
+  const filter = (q) => {
+    const words = q.toLowerCase().split(/\s+/).filter(Boolean); let shown = 0;
+    tbl.querySelectorAll("tbody tr").forEach((tr) => { const ok = words.every((w) => tr.dataset.q.includes(w)); tr.style.display = ok ? "" : "none"; shown += ok; });
+    count.textContent = q ? `${fmt(shown)} of ${fmt(rows.length)}` : rows.length < (a.total || 0) ? `Newest ${fmt(rows.length)} of ${fmt(a.total)}` : `${fmt(rows.length)} accounts`;
+  };
+  const search = h("input", { class: "search", type: "search", placeholder: "Search name, username or email", "aria-label": "Search accounts", value: state.accQuery || "",
+    oninput: (e) => { state.accQuery = e.target.value; filter(e.target.value); } });
+  c.append(h("div", { class: "card", style: "margin-top:16px" }, h("h3", {}, "Everyone"),
+    h("p", { class: "sub" }, "Click a column's name to sort by it, and again to reverse. Use comes from the study summary each account backs up after studying, the one friends see. Hover a value for when it was last updated."),
+    h("div", { class: "tools" }, search, count),
+    h("div", { class: "scroll-x" }, tbl)));
+  filter(state.accQuery || "");
+}
+
 function team(c) {
   const t = state.team || { admins: [], invites: [] };
   const iOwn = t.admins.some((a) => a.me && a.owner);
@@ -994,6 +1125,20 @@ async function setStatus(f, status) {
     if (!DEMO) await rpc("feedback_set_status", { p_id: f.id, p_status: status });
     f.status = status; render();
   } catch (x) { document.getElementById("load-error").textContent = x.message; }
+}
+
+function demoAccounts() {
+  const names = ["Mei Tanaka", "Arjun Rao", "Sofia Lind", "Liam O'Brien", "Hana Kim", "Noah Weber", "Zara Ahmed", "Lucas Silva", "Ava Chen", "Omar Haddad", "", "Isla Brown"];
+  const prov = ["apple", "google", "email"], day = 86400000, now = Date.now();
+  const list = names.map((n, i) => {
+    const synced = (now - (i % 5) * day * 1.7) / 1000, hide = i === 4;
+    return { name: n, username: n ? n.toLowerCase().replace(/[^a-z]/g, "").slice(0, 8) : "ib_student", email: `student${i + 1}@example.com`,
+      provider: prov[i % 3], joined: new Date(now - (i * 3 + 1) * day).toISOString(), confirmed: i !== 6,
+      last_sign_in: new Date(now - (i % 4) * day * 2).toISOString(), last_active: new Date(synced * 1000).toISOString(), synced: String(synced),
+      minutes_week: hide ? null : 20 + ((i * 37) % 140), sessions_week: hide ? null : 2 + (i % 9), streak: hide ? null : (i * 3) % 15,
+      week_points: 120 + i * 40, answered: 80 + i * 55, ai_week: (i * 7) % 23 };
+  });
+  return { total: list.length, last_7: 3, last_28: 9, active_1: 4, active_7: 9, by_provider: { apple: 4, google: 4, email: 4 }, accounts: list };
 }
 
 // ---------- demo data (?demo): made-up numbers in the real shape, for checking the layout ----------
