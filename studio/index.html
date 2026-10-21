@@ -132,7 +132,7 @@ a { color: var(--accent); }
 .search:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--s1-fill); }
 .tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0 0 14px; }
 .scroll-x { overflow-x: auto; }
-.scroll-x table { min-width: 980px; }
+.scroll-x table { min-width: 1080px; }
 .caption { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
 .caption b { color: var(--ink); font-weight: 600; }
 .stamp { font: 500 11px/1.4 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 10px; }
@@ -1019,6 +1019,12 @@ function feedback(c, d) {
 }
 // ---------- accounts (admins; the server checks too) ----------
 const PROVIDER = { apple: "Apple", google: "Google", email: "Email" };
+/** "Today, 14:05", "Yesterday, 09:12" or "12 Oct, 14:05", in this computer's time zone. */
+function exact(iso) {
+  const d = new Date(iso), days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(iso).setHours(0, 0, 0, 0)) / 86400000);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `${days === 0 ? "Today" : days === 1 ? "Yesterday" : d.toLocaleDateString([], { day: "numeric", month: "short", year: days > 300 ? "numeric" : undefined })}, ${time}`;
+}
 function ago(iso) {
   if (!iso) return "never";
   const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
@@ -1053,10 +1059,28 @@ function accounts(c) {
     return h("span", { title: `${fmt(r.minutes_week || 0)} min and ${fmt(r.sessions_week || 0)} sessions in 7 days. ${asOf(r)}.` },
       `${fmt(Math.round((r.minutes_week || 0) / 7))} min a day · ${fmt(r.sessions_week || 0)} sessions`);
   };
+  // AI use is kept by day only: when it's the latest thing, show the day without a time.
+  const lastActive = (r) => {
+    const seen = r.last_seen ? new Date(r.last_seen) : null, aiDay = r.ai_last_day ? new Date(r.ai_last_day + "T00:00:00Z") : null;
+    if (aiDay && (!seen || r.ai_last_day > r.last_seen.slice(0, 10)))
+      return h("div", { title: "Used AI that day; AI use is kept by day, not time." }, ago(aiDay.toISOString()),
+        h("div", { class: "note" }, aiDay.toLocaleDateString([], { day: "numeric", month: "short", timeZone: "UTC" }) + " · AI use"));
+    if (!seen) return "never";
+    return h("div", { title: seen.toLocaleString() }, ago(r.last_seen), h("div", { class: "note" }, exact(r.last_seen)));
+  };
+  // Today's study time: from builds after 1.9, as of the last backup, and only while that day is still today.
+  const isToday = (r) => r.today_start != null && Date.now() - Number(r.today_start) * 1000 < 86400000;
+  const today = (r) => {
+    if (r.minutes_today == null) return r.minutes_week == null && r.synced ? hidden.cloneNode(true)
+      : h("span", { class: "note", title: "Their app is older than the build that reports today's time." }, "update needed");
+    if (!isToday(r) || !(r.minutes_today || r.sessions_today)) return h("span", { class: "note", title: asOf(r) }, "none yet");
+    return h("span", { title: `${asOf(r)}.` }, `${fmt(r.minutes_today)} min · ${fmt(r.sessions_today || 0)} ${r.sessions_today === 1 ? "session" : "sessions"}`);
+  };
+  const todayKey = (r) => (r.minutes_today == null ? null : isToday(r) ? r.minutes_today : 0);
   const useKey = (r) => (r.minutes_week == null && r.sessions_week == null ? null : stale(r) ? 0 : r.minutes_week || 0);
   const sortKeys = rows.map((r) => [(r.name || "").toLowerCase() || null, (r.email || "").toLowerCase() || null, PROVIDER[r.provider] || r.provider || null,
-    t(r.joined), t(r.last_sign_in), t(r.last_active), useKey(r), r.streak ?? null, r.ai_week || 0]);
-  const tbl = table(["Student", "Email", "Signed up with", "Joined", "Last signed in", "Last active", "Use, last 7 days", "Streak", "AI uses, 7 days"],
+    t(r.joined), t(r.last_sign_in), t(r.last_active), todayKey(r), useKey(r), r.streak ?? null, r.ai_week || 0]);
+  const tbl = table(["Student", "Email", "Signed up with", "Joined", "Last signed in", "Last active", "Today", "Use, last 7 days", "Streak", "AI uses, 7 days"],
     rows.map((r) => [
       h("div", {}, r.name || h("span", { class: "note" }, "No name"), r.username ? h("div", { class: "note" }, "@" + r.username) : null),
       h("span", {}, r.email && PLAIN_EMAIL.test(r.email) ? h("a", { href: `mailto:${r.email}` }, r.email) : (r.email || "–"),
@@ -1064,10 +1088,11 @@ function accounts(c) {
       PROVIDER[r.provider] || r.provider || "–",
       new Date(r.joined).toLocaleDateString(),
       h("span", { title: r.last_sign_in ? new Date(r.last_sign_in).toLocaleString() : "" }, ago(r.last_sign_in)),
-      h("span", { title: r.last_active ? new Date(r.last_active).toLocaleString() : "" }, ago(r.last_active)),
+      lastActive(r),
+      today(r),
       use(r),
       r.streak == null ? (r.synced ? hidden.cloneNode(true) : "–") : h("span", { title: asOf(r) }, `${fmt(r.streak)} ${r.streak === 1 ? "day" : "days"}`),
-      fmt(r.ai_week || 0)]), [6, 7, 8],
+      fmt(r.ai_week || 0)]), [6, 7, 8, 9],
     { id: "accounts", keys: sortKeys, initial: { col: 3, dir: "desc" },
       rowAttrs: (i) => ({ "data-q": [rows[i].name, rows[i].username, rows[i].email].filter(Boolean).join(" ").toLowerCase() }) });
   const count = h("span", { class: "note" });
@@ -1136,7 +1161,9 @@ function demoAccounts() {
       provider: prov[i % 3], joined: new Date(now - (i * 3 + 1) * day).toISOString(), confirmed: i !== 6,
       last_sign_in: new Date(now - (i % 4) * day * 2).toISOString(), last_active: new Date(synced * 1000).toISOString(), synced: String(synced),
       minutes_week: hide ? null : 20 + ((i * 37) % 140), sessions_week: hide ? null : 2 + (i % 9), streak: hide ? null : (i * 3) % 15,
-      week_points: 120 + i * 40, answered: 80 + i * 55, ai_week: (i * 7) % 23 };
+      week_points: 120 + i * 40, answered: 80 + i * 55, ai_week: (i * 7) % 23,
+      last_seen: new Date(synced * 1000).toISOString(), ai_last_day: i === 2 ? new Date(now).toISOString().slice(0, 10) : null,
+      minutes_today: hide || i === 9 ? null : (i * 13) % 45, sessions_today: (i % 3), today_start: i % 5 === 0 ? new Date().setHours(0, 0, 0, 0) / 1000 : (now - 3 * day) / 1000 };
   });
   return { total: list.length, last_7: 3, last_28: 9, active_1: 4, active_7: 9, by_provider: { apple: 4, google: 4, email: 4 }, accounts: list };
 }
