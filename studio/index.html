@@ -919,7 +919,7 @@ function setup(c, d) {
   let worst = null;
   steps.forEach((x) => { if (x.drop_off_pct != null && (worst == null || x.drop_off_pct > worst.drop_off_pct)) worst = x; });
   c.append(h("div", { class: "card" }, h("h3", {}, "Setup, screen by screen"),
-    h("p", { class: "sub" }, `In order, from opening the app to finishing the first session: how often each screen was reached in the last ${Math.min(180, d.days)} days, and the drop from the screen before (red). ${worst ? `Biggest drop: ${stepName(worst.step)}, ${worst.drop_off_pct}% fewer than the screen before.` : ""} A screen seen twice after Back counts twice, so compare neighbouring bars.`),
+    h("p", { class: "sub" }, `In order, from opening the app to finishing the first session: how often each screen was reached in the last ${Math.min(180, d.days)} days, and the drop from the screen before (red). ${worst ? `Biggest drop: ${stepName(worst.step)}, ${worst.drop_off_pct}% fewer than the screen before.` : ""} Going Back doesn't count a screen twice. The name screen counts Get started taps at most, since it also flashes while a returning student signs in. A student who closes the app mid-setup starts again and is counted again.`),
     bars(steps.map((x) => ({ name: stepName(x.step), value: x.n, worst: worst && x.pos === worst.pos, note: x.drop_off_pct != null && x.drop_off_pct > 0 ? `−${x.drop_off_pct}%` : "" })))));
   const w = d.welcome || {}, ss = d.save_sheet || { choices: {} }, ai = d.ai_consent || {};
   c.append(h("div", { class: "grid3" },
@@ -1041,12 +1041,21 @@ function accounts(c) {
   const m = (label, value, basis) => h("div", { class: "hm" }, h("div", { class: "label" }, label), h("div", { class: "value" }, fmt(value || 0)), h("div", { class: "basis" }, basis));
   const bp = Object.entries(a.by_provider || {}).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${PROVIDER[k] || k} ${fmt(n)}`).join(" · ");
   c.append(h("div", { class: "card" }, h("h3", {}, "Online accounts"),
-    h("p", { class: "sub" }, "Guests and accounts kept only on a phone aren't here. Active means signed in, backed up after studying, or used AI."),
+    h("p", { class: "sub" }, "Guests (counted below) and accounts kept only on a phone aren't listed. Active means signed in, backed up after studying, or used AI."),
     h("div", { class: "health four" },
       m("Accounts", a.total, bp || "None yet"),
       m("Active today", a.active_1, "In the last 24 hours"),
       m("Active this week", a.active_7, a.total ? `${Math.round((a.active_7 / a.total) * 100)}% of accounts` : "In the last 7 days"),
       m("New this week", a.last_7, `${fmt(a.last_28 || 0)} in the last 28 days`))));
+  // Guests: a student without an account gets an anonymous online sign-in the first time they use AI.
+  const g = a.guests;
+  if (g) c.append(h("div", { class: "card", style: "margin-top:16px" }, h("h3", {}, "Guests"),
+    h("p", { class: "sub" }, "Students studying without an account. One appears online the first time they use AI, with no name or email, so they're counted here and not listed."),
+    h("div", { class: "health four" },
+      m("Guests", g.total, "Online, all time"),
+      m("New this week", g.last_7, `${fmt(g.last_28 || 0)} in the last 28 days`),
+      m("Used AI this week", g.ai_users_7, g.total ? `${Math.round((g.ai_users_7 / g.total) * 100)}% of guests` : "In the last 7 days"),
+      m("AI uses this week", g.ai_7, "By guests, last 7 days"))));
 
   const t = (x) => (x ? new Date(x).getTime() : null);
   const rows = a.accounts || [];
@@ -1165,7 +1174,8 @@ function demoAccounts() {
       last_seen: new Date(synced * 1000).toISOString(), ai_last_day: i === 2 ? new Date(now).toISOString().slice(0, 10) : null,
       minutes_today: hide || i === 9 ? null : (i * 13) % 45, sessions_today: (i % 3), today_start: i % 5 === 0 ? new Date().setHours(0, 0, 0, 0) / 1000 : (now - 3 * day) / 1000 };
   });
-  return { total: list.length, last_7: 3, last_28: 9, active_1: 4, active_7: 9, by_provider: { apple: 4, google: 4, email: 4 }, accounts: list };
+  return { total: list.length, last_7: 3, last_28: 9, active_1: 4, active_7: 9, by_provider: { apple: 4, google: 4, email: 4 }, accounts: list,
+    guests: { total: 11, last_7: 1, last_28: 7, ai_users_7: 3, ai_7: 14 } };
 }
 
 // ---------- demo data (?demo): made-up numbers in the real shape, for checking the layout ----------
