@@ -358,7 +358,7 @@ tbody tr:hover { background: var(--wash); }
       </div>
       <div class="controls">
         <div class="seg" id="range">
-          <span class="seg-ink" aria-hidden="true"></span><button data-days="7">7 days</button><button data-days="28" class="on">28 days</button><button data-days="90">90 days</button><button data-days="365">365 days</button>
+          <span class="seg-ink" aria-hidden="true"></span><button data-days="1">1 day</button><button data-days="7">7 days</button><button data-days="28" class="on">28 days</button><button data-days="90">90 days</button><button data-days="365">365 days</button>
         </div>
         <label class="check" id="test-label" title="Also count Debug builds launched with --usage-send, to see the pipeline working before a release."><input type="checkbox" id="test-box"> Show test builds</label>
         <button class="btn" id="refresh-btn" type="button">Refresh</button>
@@ -583,7 +583,7 @@ async function load(quiet) {
     if (!quiet) state.animate = true;
     if (quiet && document.activeElement?.classList.contains("search")) return;
     const fresh = new Date(state.data.generated_at || Date.now());
-    document.getElementById("stamp").textContent = `${dayLabel(state.data.from, true)} to ${dayLabel(state.data.to, true)} (UTC) · updated ${fresh.toLocaleTimeString()}${state.includeTest ? " · including test builds" : " · App Store builds only"}`;
+    document.getElementById("stamp").textContent = `${state.data.from === state.data.to ? `Today so far, ${dayLabel(state.data.to, true)}` : `${dayLabel(state.data.from, true)} to ${dayLabel(state.data.to, true)}`} (UTC) · updated ${fresh.toLocaleTimeString()}${state.includeTest ? " · including test builds" : " · App Store builds only"}`;
     render();
   } catch (x) {
     if (x.message === "Not on the team yet.") return;
@@ -691,11 +691,12 @@ function lineChart(days, series, { height = 260, area = series.length === 1 } = 
   }
   const every = Math.max(1, Math.ceil(n / 8));
   // A regular date too close to the last one is left out, so the two never overlap.
-  days.forEach((dd, i) => { if ((i % every === 0 && n - 1 - i >= every * 0.6) || i === n - 1) svg.append(s("text", { x: x(i), y: H - 6, "text-anchor": i === 0 ? "start" : i === n - 1 ? "end" : "middle", class: "tick" }, dayLabel(dd))); });
+  days.forEach((dd, i) => { if ((i % every === 0 && n - 1 - i >= every * 0.6) || i === n - 1) svg.append(s("text", { x: x(i), y: H - 6, "text-anchor": n === 1 ? "middle" : i === 0 ? "start" : i === n - 1 ? "end" : "middle", class: "tick" }, dayLabel(dd))); });
   for (const se of series) {
     const pts = se.values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
     if (area) svg.append(s("polygon", { points: `${x(0)},${y(0)} ${pts} ${x(n - 1)},${y(0)}`, fill: css("--s1-fill") }));
     svg.append(s("polyline", { points: pts, pathLength: 1, fill: "none", stroke: css(se.color), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    if (n === 1) svg.append(s("circle", { cx: x(0), cy: y(se.values[0]), r: 4, fill: css(se.color) }));   // one day has no line to draw
   }
   const hair = s("line", { y1: T, y2: H - B, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden" });
   const dots = series.map((se) => s("circle", { r: 4, fill: css(se.color), stroke: css("--surface"), "stroke-width": 2, visibility: "hidden" }));
@@ -868,6 +869,16 @@ function healthCard(d) {
         pts(probNow, probPrev, false, ""))));
 }
 
+/** One row a day, newest first. Click a column to sort, such as New installs for the biggest days. */
+function byDayCard(d) {
+  const cols = ["installs", "active", "setup_done", "sessions_finished", "accounts", "problems"];
+  const rows = d.daily.map((r) => [r.day === d.to ? `${dayLabel(r.day, true)} (so far)` : dayLabel(r.day, true), ...cols.map((k) => fmt(r[k]))]);
+  return h("div", { class: "card" }, h("h3", {}, "By day"),
+    h("p", { class: "sub" }, "New installs are first opens on a new device, not App Store downloads. Days run midnight to midnight UTC."),
+    h("div", { style: "max-height:380px;overflow:auto" }, table(["Day", "New installs", "Active devices", "Finished setup", "Sessions finished", "Accounts created", "Problems"], rows, [1, 2, 3, 4, 5, 6],
+      { id: "by-day", keys: d.daily.map((r) => [r.day, ...cols.map((k) => r[k])]), initial: { col: 0, dir: "desc" } })));
+}
+
 function overview(c, d) {
   c.append(healthCard(d));
   const days = d.daily.map((r) => r.day);
@@ -883,9 +894,11 @@ function overview(c, d) {
       h("div", { class: "label" }, k.label), h("div", { class: "value" }, k.perDay ? fmt1(cur) : fmt(cur)), delta));
   }
   const sel = KPIS.find((k) => k.key === state.kpi);
-  card.append(tabs, h("p", { class: "caption" }, "Chart: ", h("b", {}, sel.label.replace("Avg daily active", "Active devices")), ` per day, ${KPI_HELP[sel.key]}. Click another number above to chart it; hover the chart for one day.`),
+  if (d.days === 1) card.append(tabs, h("p", { class: "caption" }, "Today so far, from midnight UTC. The arrows compare with all of yesterday, so they read low until the day ends. For earlier days, choose 7 days or longer and read the By day table."));
+  else card.append(tabs, h("p", { class: "caption" }, "Chart: ", h("b", {}, sel.label.replace("Avg daily active", "Active devices")), ` per day, ${KPI_HELP[sel.key]}. Click another number above to chart it; hover the chart for one day.`),
     lineChart(days, [{ name: sel.label.replace("Avg daily active", "Active that day"), color: "--s1", values: d.daily.map((r) => r[sel.series]) }]));
   c.append(h("div", { style: "margin-top:18px" }, card));
+  if (d.days > 1) c.append(h("div", { style: "margin-top:18px" }, byDayCard(d)));
 
   const steps = d.setup_steps || [];
   const first = steps[0]?.n || 0, setupDone = steps.find((x) => x.step === "setup done")?.n || 0, tasterDone = steps.find((x) => x.step === "taster finished")?.n || 0;
@@ -919,7 +932,7 @@ function setup(c, d) {
   let worst = null;
   steps.forEach((x) => { if (x.drop_off_pct != null && (worst == null || x.drop_off_pct > worst.drop_off_pct)) worst = x; });
   c.append(h("div", { class: "card" }, h("h3", {}, "Setup, screen by screen"),
-    h("p", { class: "sub" }, `In order, from opening the app to finishing the first session: how often each screen was reached in the last ${Math.min(180, d.days)} days, and the drop from the screen before (red). ${worst ? `Biggest drop: ${stepName(worst.step)}, ${worst.drop_off_pct}% fewer than the screen before.` : ""} Going Back doesn't count a screen twice. The name screen counts Get started taps at most, since it also flashes while a returning student signs in. A student who closes the app mid-setup starts again and is counted again.`),
+    h("p", { class: "sub" }, `In order, from opening the app to finishing the first session: how often each screen was reached ${d.days === 1 ? "today" : `in the last ${Math.min(180, d.days)} days`}, and the drop from the screen before (red). ${worst ? `Biggest drop: ${stepName(worst.step)}, ${worst.drop_off_pct}% fewer than the screen before.` : ""} Going Back doesn't count a screen twice. The name screen counts Get started taps at most, since it also flashes while a returning student signs in. A student who closes the app mid-setup starts again and is counted again.`),
     bars(steps.map((x) => ({ name: stepName(x.step), value: x.n, worst: worst && x.pos === worst.pos, note: x.drop_off_pct != null && x.drop_off_pct > 0 ? `−${x.drop_off_pct}%` : "" })))));
   const w = d.welcome || {}, ss = d.save_sheet || { choices: {} }, ai = d.ai_consent || {};
   c.append(h("div", { class: "grid3" },
@@ -1230,7 +1243,7 @@ function demoFeedback() {
 {
   const start = location.hash.slice(1);
   if (TITLES[start]) { state.page = start; document.querySelectorAll(".tab").forEach((n) => n.classList.toggle("on", n.dataset.page === start)); }
-  try { const r = Number(localStorage.getItem("syllabo-dash-days")); if ([7, 28, 90, 365].includes(r)) { state.days = r; document.querySelectorAll("#range button").forEach((n) => n.classList.toggle("on", Number(n.dataset.days) === r)); } } catch {}
+  try { const r = Number(localStorage.getItem("syllabo-dash-days")); if ([1, 7, 28, 90, 365].includes(r)) { state.days = r; document.querySelectorAll("#range button").forEach((n) => n.classList.toggle("on", Number(n.dataset.days) === r)); } } catch {}
 }
 state.session = loadSession();
 if (DEMO) startApp();
