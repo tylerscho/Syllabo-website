@@ -33,7 +33,7 @@
   --display:"Archivo","Arial Black",system-ui,sans-serif;
   --body:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
-  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --mono:var(--body);
   --pad:clamp(16px,3.4vw,48px);--max:1240px;
   --ease:cubic-bezier(.22,1,.36,1);--back:cubic-bezier(.34,1.45,.64,1);--io:cubic-bezier(.65,0,.35,1);
 }
@@ -335,9 +335,9 @@ a:hover .arrbox svg,a:focus-visible .arrbox svg{transform:translate(2px,-2px)}
 
 <main id="main">
   <header class="doc-head" id="top">
-    <div class="sec-label"><p><i></i>Legal</p><p>A personal study aid for the IB Diploma</p></div>
+    <div class="sec-label"><p><i></i>Legal</p><p>A personal study aid for IB and AP®</p></div>
     <h1 class="disp rise">Terms of use</h1>
-    <p class="updated fade">Last updated 8 October 2026</p>
+    <p class="updated fade">Last updated 2 November 2026</p>
   </header>
   <div class="doc-grid">
     <nav class="toc" aria-label="On this page"><p class="toc-h">On this page</p><ol><li><a href="#1-what-the-app-is">1. What the app is</a></li><li><a href="#2-your-account">2. Your account</a></li><li><a href="#3-acceptable-use">3. Acceptable use</a></li><li><a href="#4-content-and-accuracy">4. Content and accuracy</a></li><li><a href="#5-ai-features">5. AI features</a></li><li><a href="#6-friends-coins-and-the-buddy">6. Friends, coins and the buddy</a></li><li><a href="#7-intellectual-property">7. Intellectual property</a></li><li><a href="#8-warranty-and-liability">8. Warranty and liability</a></li><li><a href="#9-changes-and-law">9. Changes and law</a></li><li><a href="#contact"><span class="n">10</span>Contact</a></li></ol></nav>
@@ -345,16 +345,16 @@ a:hover .arrbox svg,a:focus-visible .arrbox svg{transform:translate(2px,-2px)}
 <p>By creating an account or continuing as a guest you agree to these terms and to the <a href="privacy.html">privacy policy</a>.</p>
 
   <h2 id="1-what-the-app-is">1. What the app is</h2>
-  <p>Syllabo is a personal study aid for the IB Diploma Programme. It is not affiliated with or endorsed by the International Baccalaureate Organization.</p>
+  <p>Syllabo is a personal study aid for the IB Diploma Programme and AP® courses. Its practice questions are original and written in IB paper format or AP® exam format. It is not affiliated with or endorsed by the International Baccalaureate Organization or College Board.</p>
 
   <h2 id="2-your-account">2. Your account</h2>
   <p>You are responsible for the details you enter and for keeping your password safe. Online accounts can be reset with a code sent to your email; accounts kept only on this device can be reset with Face ID, Touch ID or your passcode. You may delete your account at any time from the Account screen.</p>
 
   <h2 id="3-acceptable-use">3. Acceptable use</h2>
-  <p>You agree not to import or share content you are not licensed to use, including IBO past papers you have no right to reproduce; use the app to harass other users; attempt to access another person's account; or reverse engineer the app beyond what the law allows.</p>
+  <p>You agree not to import or share content you are not licensed to use, including IBO past papers or College Board exam questions you have no right to reproduce; use the app to harass other users; attempt to access another person's account; or reverse engineer the app beyond what the law allows.</p>
 
   <h2 id="4-content-and-accuracy">4. Content and accuracy</h2>
-  <p>Curriculum content, questions, glossaries and mark schemes are original summaries and may contain errors or differ from the current syllabus. AI responses can be wrong. The app does not guarantee any grade or outcome. Check anything important against your teacher and the official guide.</p>
+  <p>Curriculum content, questions, glossaries and mark schemes are original summaries and may contain errors or differ from the current syllabus. AI responses can be wrong. Marks, predicted grades and AP® 1 to 5 scores in the app are estimates, not official results, and AP® courses are offered as a beta. The app does not guarantee any grade, score or outcome. Check anything important against your teacher and the official guide or course description.</p>
 
   <h2 id="5-ai-features">5. AI features</h2>
   <p>AI marking, feedback and the tutor use Anthropic's Claude models through Syllabo's server, with a daily allowance per account that may change. AI output can be wrong, so check it against your teacher's guidance. If you enter your own API key, your use of that provider is governed by their terms and you are responsible for any charges on that key.</p>
@@ -363,7 +363,7 @@ a:hover .arrbox svg,a:focus-visible .arrbox svg{transform:translate(2px,-2px)}
   <p>Content you make visible to friends is shared at your discretion. Coins, items and packs have no cash value and cannot be purchased, traded or refunded.</p>
 
   <h2 id="7-intellectual-property">7. Intellectual property</h2>
-  <p>The app, its design, code and original content are owned by the developer. You may not copy or redistribute the app's content outside personal study use.</p>
+  <p>The app, its design, code and original content are owned by the developer. You may not copy or redistribute the app's content outside personal study use. AP® and Advanced Placement® are registered trademarks of College Board, which is not affiliated with, and does not endorse, this app. "International Baccalaureate" and "IB" are trademarks of the International Baccalaureate Organization, which does not endorse this app.</p>
 
   <h2 id="8-warranty-and-liability">8. Warranty and liability</h2>
   <p>The app is provided as is, without warranty of any kind. To the fullest extent permitted by law the developer is not liable for indirect loss, data loss or exam results arising from use of the app.</p>
@@ -380,14 +380,14 @@ a:hover .arrbox svg,a:focus-visible .arrbox svg{transform:translate(2px,-2px)}
 <footer class="site-foot" id="footer-nav">
   <div class="fcols">
     <div><a class="brand" href="index.html"><span class="lk-icon"><img decoding="async" src="../assets/icon.png" width="180" height="180" alt="" loading="lazy"></span><span class="lk-word" aria-hidden="true">SYLLABO<svg class="lk-spark" viewBox="0 0 40 40" focusable="false"><path d="M20 2Q23 17 38 20 23 23 20 38 17 23 2 20 17 17 20 2Z"/></svg></span><span class="sr">Syllabo</span></a><p>A personal study app for the IB Diploma. Built in Singapore for the minutes between everything else.</p></div>
-    <nav aria-labelledby="fh-p"><h2 class="fh" id="fh-p">Product</h2><ul><li><a class="ul" href="index.html#product">Features</a></li><li><a class="ul" href="index.html#compete">Leagues and duels</a></li><li><a class="ul" href="index.html#how">How it works</a></li><li><a class="ul" href="index.html#pricing">Pricing</a></li><li><a class="ul" href="index.html#faq">FAQ</a></li></ul></nav>
+    <nav aria-labelledby="fh-p"><h2 class="fh" id="fh-p">Product</h2><ul><li><a class="ul" href="index.html#product">Features</a></li><li><a class="ul" href="index.html#compete">Leagues and duels</a></li><li><a class="ul" href="index.html#how">How it works</a></li><li><a class="ul" href="index.html#pricing">Pricing</a></li><li><a class="ul" href="index.html#faq">FAQ</a></li><li><a class="ul" href="ap.html">AP® courses (beta)</a></li></ul></nav>
     <nav aria-labelledby="fh-l"><h2 class="fh" id="fh-l">Legal</h2><ul><li><a class="ul" href="privacy.html">Privacy policy</a></li><li><a class="ul" href="terms.html">Terms of use</a></li></ul></nav>
     <div><h2 class="fh">Contact</h2><ul><li><a class="ul" href="support.html">Support</a></li><li><a class="ul" href="mailto:syllabosupport@gmail.com">syllabosupport@gmail.com</a></li></ul></div>
   </div>
   <div class="giant-clip">
     <div class="giant disp" id="giant" aria-hidden="true"><span><span class="gl">S</span></span><span><span class="gl">Y</span></span><span class="perch"><span class="gl">L</span><span class="prop p-icon" style="--i:0"><img decoding="async" src="../assets/icon.png" width="180" height="180" alt="" loading="lazy"></span></span><span><span class="gl">L</span></span><span class="perch"><span class="gl">A</span><span class="prop p-xp" style="--i:1"><span class="xpc"><svg><use href="index.html#i-star"/></svg>+40 XP</span></span></span><span class="perch"><span class="gl">B</span><span class="prop p-coin" style="--i:2"><svg viewBox="0 0 24 24"><use href="index.html#i-coin"/></svg></span></span><span class="perch"><span class="gl">O</span><span class="prop p-star" style="--i:3"><svg viewBox="0 0 100 100"><path d="M50 7 61 37 94 39 68 58 78 91 50 71 22 91 32 58 6 39 39 37Z"/></svg></span></span></div>
   </div>
-  <div class="fbottom"><span>&copy; 2026 Tyler Cho. All rights reserved.</span><span>Not affiliated with or endorsed by the International Baccalaureate Organization.</span></div>
+  <div class="fbottom"><span>&copy; 2026 Tyler Cho. All rights reserved.</span><span>Not affiliated with or endorsed by the International Baccalaureate Organization.</span><span>AP® and Advanced Placement® are registered trademarks of College Board, which is not affiliated with, and does not endorse, this app or this website.</span></div>
 </footer>
 
 <script>
