@@ -22,7 +22,7 @@
     shared on 8 Oct 2026: googly eyes, a hit that knocks the letters loose, a spinning asterisk, an arrow that uncurls).
   Type: Archivo (wdth 125) for display, Poppins for body, Instrument Serif italic for accent words only.
 -->
-<title>Syllabo: the IB study app that fits the time you have</title>
+<title>Syllabo: the study app that fits the time you have</title>
 <meta name="description" content="Syllabo turns 5 to 60 minute gaps into IB Diploma progress: sessions built from your weak spots, exam-format questions with marking, flashcards, a tutor that knows your syllabus, and a study buddy that grows with your streak. More courses in beta.">
 <meta name="theme-color" content="#F6F5F1">
 <meta name="color-scheme" content="light">
@@ -34,12 +34,12 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Syllabo">
 <meta property="og:url" content="https://syllabo.org/">
-<meta property="og:title" content="Syllabo: the IB study app that fits the time you have">
-<meta property="og:description" content="The IB study app that fits the time you have.">
+<meta property="og:title" content="Syllabo: the study app that fits the time you have">
+<meta property="og:description" content="The study app that fits the time you have.">
 <meta property="og:image" content="https://syllabo.org/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The Syllabo wordmark with an XP chip, a streak, a syllabus point and a grade 7, above the line: The IB syllabus, one session at a time.">
+<meta property="og:image:alt" content="The Syllabo wordmark with an XP chip, a streak, a syllabus point and a grade 7, above the line: Your syllabus, one session at a time.">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Syllabo","description":"A study app for the IB Diploma and more: sessions built from your weak spots, exam-format questions with marking, flashcards, a tutor that knows your syllabus and a study buddy.","applicationCategory":"EducationalApplication","operatingSystem":"iOS, iPadOS, macOS","url":"https://syllabo.org/","downloadUrl":"https://apps.apple.com/app/syllabo/id6810865998","image":"https://syllabo.org/assets/og.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
 <link rel="icon" href="assets/favicon.ico" sizes="48x48">
@@ -336,6 +336,8 @@ html.js .card{left:0;top:0;opacity:0;will-change:transform,opacity}
 .marquee{overflow:hidden;display:grid;gap:12px;outline-offset:-3px}
 .mrow{display:flex;width:max-content;animation:marq 80s linear infinite}
 .mrow.r2{animation-direction:reverse;animation-duration:90s}
+.mrow.r3{animation-duration:70s}
+.subjects h2 a{color:var(--blue);text-decoration:underline;text-underline-offset:3px}
 .mrow ul{display:flex}
 .mrow li{display:flex;align-items:center;white-space:nowrap;font-family:var(--display);font-weight:700;font-stretch:115%;font-size:clamp(22px,2.6vw,38px);line-height:1.25;letter-spacing:-.015em;color:#7A808A;transition:color .25s}
 .mrow li::after{content:"";width:7px;height:7px;border-radius:50%;background:#C9C6BC;margin:0 clamp(18px,2.4vw,36px)}
@@ -759,7 +761,7 @@ html.js .big.fill .acc:not(.drawn) .spark{transform:scale(0)}
 <header class="nav" id="nav">
   <div class="bar">
     <div class="bar-sh" aria-hidden="true"><div class="bar-bg"></div></div><svg class="wave" aria-hidden="true" focusable="false"><path class="wv-t" pathLength="1"/><path class="wv-f" pathLength="1"/></svg>
-    <a class="lockup" href="#top"><span class="lk-icon"><img decoding="async" src="assets/icon.png" width="180" height="180" alt=""></span><span class="lk-txt"><span class="lk-word" aria-hidden="true"><i style="--j:0">S</i><i style="--j:1">Y</i><i style="--j:2">L</i><i style="--j:3">L</i><i style="--j:4">A</i><i style="--j:5">B</i><i style="--j:6">O</i><svg class="lk-spark" viewBox="0 0 40 40" focusable="false"><path d="M20 2Q23 17 38 20 23 23 20 38 17 23 2 20 17 17 20 2Z"/></svg></span><span class="sub" aria-hidden="true"><span>IB Diploma study app</span></span><span class="sr">Syllabo, study app for the IB Diploma</span></span></a>
+    <a class="lockup" href="#top"><span class="lk-icon"><img decoding="async" src="assets/icon.png" width="180" height="180" alt=""></span><span class="lk-txt"><span class="lk-word" aria-hidden="true"><i style="--j:0">S</i><i style="--j:1">Y</i><i style="--j:2">L</i><i style="--j:3">L</i><i style="--j:4">A</i><i style="--j:5">B</i><i style="--j:6">O</i><svg class="lk-spark" viewBox="0 0 40 40" focusable="false"><path d="M20 2Q23 17 38 20 23 23 20 38 17 23 2 20 17 17 20 2Z"/></svg></span><span class="sub" aria-hidden="true"><span>Revision, made fun</span></span><span class="sr">Syllabo, study app for the IB Diploma and AP® courses</span></span></a>
     <nav class="links" aria-label="Main">
       <svg class="circ" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path pathLength="1" d="M84 7C70 2 30 1.5 13 8 1 13 1.5 27 15 33 33 40 72 39.5 88 33 99 28.5 99.5 14 85 8 76 4.5 58 5.5 42 10"/></svg>
       <a class="l-eyes" href="#product" data-sec="product"><svg class="ico" viewBox="0 0 30 22" aria-hidden="true" focusable="false"><g class="eye"><path d="M8 1.4C3.9 1.5 1.6 5.6 1.8 11.2c.2 5.6 2.6 9.5 6.4 9.4 3.9-.1 6.1-4.4 5.9-10C13.9 5.2 11.8 1.3 8 1.4Z"/><circle class="pu" cx="7.9" cy="11" r="2.9"/></g><g class="eye"><path d="M22.1 1.6c-4 0-6 4.2-5.9 9.6.1 5.5 2.4 9.4 6.2 9.3 3.9-.1 6-4.3 5.8-9.8-.2-5.3-2.3-9.1-6.1-9.1Z"/><circle class="pu" cx="22.2" cy="11" r="2.9"/></g></svg><span class="lbl">Product</span></a>
@@ -793,7 +795,7 @@ html.js .big.fill .acc:not(.drawn) .spark{transform:scale(0)}
   <div class="hero-stage">
     <div class="foot">
       <div class="intro">
-        <h1 id="h1"><span class="l1">The IB syllabus,</span> <span class="l2">one session at a time.</span></h1>
+        <h1 id="h1"><span class="l1">Your syllabus,</span> <span class="l2">one session at a time.</span></h1>
       </div>
       <div class="foot-r">
         <a class="appstore mag" href="https://apps.apple.com/app/syllabo/id6810865998"><svg aria-hidden="true"><use href="#i-apple"/></svg><span><small>Download on the</small><b>App Store</b></span></a>
@@ -837,9 +839,9 @@ html.js .big.fill .acc:not(.drawn) .spark{transform:scale(0)}
 
 <!-- ===================== SUBJECTS ===================== -->
 <section class="subjects" id="subjects" aria-labelledby="subj-h">
-  <div class="sec-label"><p><i></i>01 / Subjects</p><p>Groups 1 to 5 • HL • SL</p></div>
+  <div class="sec-label"><p><i></i>01 / Subjects</p><p>IB Groups 1 to 5 • HL • SL • AP® courses</p></div>
   <p class="lead-in"><span>Tell Syllabo how many minutes you have.</span> It builds a session from your weakest syllabus points, your open mistakes and the topics due for review, marks what you write, and moves on.</p>
-  <h2 id="subj-h"><span class="num" data-count="29">29</span> IB Diploma subjects across Groups 1 to 5, at HL and SL</h2>
+  <h2 id="subj-h"><span class="num" data-count="29">29</span> IB Diploma subjects across Groups 1 to 5, at HL and SL, and <span class="num">12</span> <a href="courses.html">AP® courses</a>, in beta</h2>
   <div class="marquee" tabindex="0" role="group" aria-label="Subjects in Syllabo. Hover or focus to pause the moving list.">
     <div class="mrow r1">
       <ul><li>Biology</li><li>Chemistry</li><li>Physics</li><li>Maths AA</li><li>Maths AI</li><li>Economics</li><li>Business Management</li><li>Psychology</li><li>Global Politics</li><li>Geography</li><li>History</li><li>Philosophy</li><li>ESS</li><li>Computer Science</li></ul>
@@ -848,6 +850,10 @@ html.js .big.fill .acc:not(.drawn) .spark{transform:scale(0)}
     <div class="mrow r2">
       <ul><li>Design Technology</li><li>SEHS</li><li>English A</li><li>Chinese A</li><li>French A</li><li>Spanish A</li><li>English B</li><li>Chinese B</li><li>French B</li><li>Spanish B</li><li>French ab initio</li><li>Spanish ab initio</li><li>Systems Transformation</li></ul>
       <ul aria-hidden="true"><li>Design Technology</li><li>SEHS</li><li>English A</li><li>Chinese A</li><li>French A</li><li>Spanish A</li><li>English B</li><li>Chinese B</li><li>French B</li><li>Spanish B</li><li>French ab initio</li><li>Spanish ab initio</li><li>Systems Transformation</li></ul>
+    </div>
+    <div class="mrow r3" aria-label="AP® courses in beta">
+      <ul><li>Calculus AB and BC</li><li>Precalculus</li><li>Statistics</li><li>Biology</li><li>Chemistry</li><li>Physics 1</li><li>Psychology</li><li>US History</li><li>World History</li><li>English Language</li><li>Macroeconomics</li><li>Microeconomics</li></ul>
+      <ul aria-hidden="true"><li>Calculus AB and BC</li><li>Precalculus</li><li>Statistics</li><li>Biology</li><li>Chemistry</li><li>Physics 1</li><li>Psychology</li><li>US History</li><li>World History</li><li>English Language</li><li>Macroeconomics</li><li>Microeconomics</li></ul>
     </div>
   </div>
 </section>
@@ -980,7 +986,7 @@ html.js .big.fill .acc:not(.drawn) .spark{transform:scale(0)}
       <img decoding="async" class="fpip px" src="assets/pip/think.png" width="100" height="116" alt="" loading="lazy">
       <span class="n disp">01</span>
       <h3>Choose your subjects and levels.</h3>
-      <p>Pick your six from 29 IB Diploma subjects. Add your school's units and your upcoming tests with the topics they cover.</p>
+      <p>Pick your six from 29 IB Diploma subjects, or choose your AP® courses. Add your school's units and your upcoming tests with the topics they cover.</p>
       <span class="crop" style="--x0:30;--y0:500;--rw:584;--rh:270"><img decoding="async" src="assets/shots/learn.jpg" width="644" height="1400" alt="" loading="lazy"></span>
     </li>
     <li class="fc c2">
@@ -1091,6 +1097,7 @@ html.js .big.fill .acc:not(.drawn) .spark{transform:scale(0)}
     <p class="yc fade">Everything below comes in one free app for iPhone, iPad and Mac: sessions planned from your weak spots, exam-format questions marked point by point, a tutor that knows where you are, a buddy that keeps your streak, and leagues you climb only by studying.</p>
     <div class="stats" role="group" aria-label="Syllabo in numbers">
       <div><b data-count="29">29</b><span>IB subjects</span></div>
+      <div><b data-count="12">12</b><span>AP® courses (beta)</span></div>
       <div><b data-count="53000" data-plus>53,000+</b><span>Questions</span></div>
       <div><b data-count="1000" data-plus>1,000+</b><span>Glossary terms</span></div>
       <div><b data-count="107">107</b><span>Skins</span></div>
@@ -1231,7 +1238,7 @@ $('#skin-grid').innerHTML=SK.map((s,i)=>{const n=s==='dj'?'DJ':s[0].toUpperCase(
 /* ---------- nav: islands that merge, a marker circle on the current link, rolling letters, progress wave, tuck ---------- */
 const navEl=$('#nav'),bar=$('.bar',navEl),links=$('.links',navEl),navA=$$('.links a[data-sec]'),sheetA=$$('#sheet a[data-sec]');
 const circ=$('.circ',links),circP=$('path',circ),sub=$('.sub',navEl),lkSpark=$('.lk-spark',navEl),wave=$('.wave',navEl),wvT=$('.wv-t',navEl),wvF=$('.wv-f',navEl);
-const SUB0='IB Diploma study app',CIRC_COLS=['#2F63D6','#7C6CF0','#F0524F','#E7B400'];
+const SUB0='Revision, made fun',CIRC_COLS=['#2F63D6','#7C6CF0','#F0524F','#E7B400'];
 /* sections in page order; the one holding the middle of the viewport is current, and a later entry wins (#deck sits inside #product) */
 const SECS=[['top'],['subjects','01','Subjects'],['product','02','The idea'],['deck','03','Inside Syllabo'],['how','04','How it works'],['compete','05','Compete'],['included','06','What is included'],['pricing','07','Pricing'],['faq','08','Questions'],['download','09','Get Syllabo']].map(([id,n,t])=>({id,n,t,el:d.getElementById(id),top:0}));
 const LINK_OF={product:'product',deck:'product',how:'how',compete:'compete',pricing:'pricing'};
