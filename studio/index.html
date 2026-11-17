@@ -571,13 +571,23 @@ async function load(quiet) {
       state.data = demoData(state.days); state.feedback = demoFeedback();
       state.team = { admins: [{ user_id: "1", email: "tyler@example.com", added_at: new Date().toISOString(), me: true, owner: true }, { user_id: "2", email: "partner@example.com", added_at: new Date().toISOString(), me: false }], invites: [] };
       state.accounts = demoAccounts();
+      state.reports = { open: 2, players: 1, new_day: 1, oldest: new Date(Date.now() - 3 * 86400000).toISOString() }; state.reportsError = "";
+      state.diag = demoDiag(state.days);
+      state.real = demoReal(state.days); state.realError = "";
     }
     else {
-      const [data, fb, team] = await Promise.all([rpc("usage_dashboard", { p_days: state.days, p_include_test: state.includeTest }),
-        rpc("feedback_list", { p_status: null }), rpc("admin_team", {}).catch(() => null)]);
-      state.data = data; state.feedback = fb || []; state.team = team;
+      state.reportsError = "";
+      const [data, fb, team, reports] = await Promise.all([rpc("usage_dashboard", { p_days: state.days, p_include_test: state.includeTest }),
+        rpc("feedback_list", { p_status: null }), rpc("admin_team", {}).catch(() => null),
+        rpc("admin_open_reports", {}, { optional: true }).catch((x) => { state.reportsError = x.message; return null; })]);
+      state.data = data; state.feedback = fb || []; state.team = team; state.reports = reports;
       state.accountsError = "";
       state.accounts = await rpc("admin_accounts", {}, { optional: true }).catch((x) => { state.accountsError = x.message; return null; });
+      // Crash and hang counts (usage_diagnostics.sql): a missing function only blanks that card.
+      state.diag = await rpc("usage_diagnostics", { p_days: state.days, p_include_test: state.includeTest }, { optional: true }).catch((x) => ({ error: x.message }));
+      // Numbers that stay true (Tools/supabase/usage_real_activity.sql): a missing function only blanks those cards.
+      state.realError = "";
+      state.real = await rpc("usage_real_activity", { p_days: state.days }, { optional: true }).catch((x) => { state.realError = x.message; return null; });
     }
     state.loadedAt = Date.now();
     if (!quiet) state.animate = true;
@@ -596,9 +606,9 @@ async function load(quiet) {
 const TITLES = { overview: "Overview", setup: "Setup funnel", retention: "Coming back", sessions: "Sessions", problems: "Problems", feedback: "Feedback", accounts: "Accounts", team: "Team" };
 // One line under each title: the question the page answers.
 const LEDES = {
-  overview: "How Syllabo is doing at a glance. Start with Weekly health: five numbers that cover a new student's whole journey.",
+  overview: "How Syllabo is doing at a glance. Real people first, then Weekly health: five numbers that cover a new student's journey.",
   setup: "Where new students drop out before their first session. Fix the screen with the biggest drop first.",
-  retention: "Whether students come back after installing. Read across a row to see one week fade; read down to compare weeks.",
+  retention: "Whether students come back. Accounts are followed from sign-up; every student is followed from 1.9.4, when opens became reliable.",
   sessions: "How study sessions go: how many are finished, why some end early, and how first-week answers are marked.",
   problems: "Things that failed in the app, by type. A new code, or a jump after a release, comes first.",
   feedback: "Notes students chose to send. Read the new ones, reply where there is a contact, then mark them done.",
@@ -627,6 +637,7 @@ function render() {
       state.includeTest ? "Try a longer range, or launch a Debug build with --usage-send."
                         : "Counts start with the first App Store release that includes them. To see our own testing, tick Show test builds.")));
   }
+  if (state.page === "overview" || state.page === "feedback") { const n = reportsNotice(); if (n) c.append(n); }
   ({ overview, setup, retention, sessions, problems, feedback, accounts, team })[state.page](c, d);
   moveInks();
   if (state.animate) { state.animate = false; playEntrance(c); }
@@ -797,7 +808,7 @@ function deltaEl(cur, prev) {
 const KIND = { taster: "First session", quick: "Quick session", practice: "Practice", learn: "Learn", mixed: "Learn and practise", exam: "Exam questions", reviewMistakes: "Review mistakes", aiDecides: "Syllabo picks", duel: "Duel", mock: "Mock paper", other: "Other" };
 const REASON = { too_hard: "Too hard", too_long: "Too long", wrong_topic: "Wrong topic", looking: "Just looking", broke: "Something broke", none: "No reason given" };
 const PROBLEM = { error: "Error", ai_mark_failed: "AI marking failed", signin_failed: "Sign-in failed", store_unavailable: "Couldn't open progress" };
-const PLATFORM = { iphone: "iPhone", ipad: "iPad", mac: "Mac" };
+const PLATFORM = { iphone: "iPhone", ipad: "iPad", mac: "Mac", android: "Android" };
 const STEP = { "installed": "Opened for the first time", "name": "Name screen", "showcase 1": "Intro card 1", "showcase 2": "Intro card 2",
   "showcase 3": "Intro card 3", "showcase 4": "Intro card 4", "subjects": "Subjects", "topics": "Topics covered", "minutes": "Daily minutes",
   "plan": "Plan", "setup done": "Setup finished", "taster started": "First session started", "taster finished": "First session finished" };
@@ -808,13 +819,18 @@ const CODE = { offline: "No connection on the phone", "401": "Signed out of thei
   no_plan: "No first session could be built", refused: "The server refused the note", other: "Something else",
   wrongCredentials: "Wrong email or password", emailTaken: "Email already has an account", usernameTaken: "Username already taken",
   invalidEmail: "Email address not valid", weakPassword: "Password too short", needs_code: "Waiting for the emailed code",
-  invalidUsername: "Username not allowed", sameEmail: "Same email as before" };
+  invalidUsername: "Username not allowed", sameEmail: "Same email as before",
+  code_expired: "Emailed code wrong or expired", rate_limited: "Too many tries, server asked to wait", email_unconfirmed: "Email not confirmed yet",
+  nonce_mismatch: "Apple or Google check didn't match", apple_no_token: "Apple sent no sign-in token", google_incomplete: "Google sign-in didn't finish",
+  web_sheet: "Sign-in page couldn't open", apple_1000: "Apple sign-in failed (unknown)", apple_1004: "Apple sign-in failed",
+  nameNotAllowed: "Name not allowed" };
 /** A code's meaning in words; an unlisted one is spelled out ("someNewCode" → "Some new code"). */
 const codeText = (c) => CODE[c] || (c ? c.replace(/[_-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().replace(/^./, (x) => x.toUpperCase()) : "–");
 const PLACE = { welcome: "Sign-in screen", save_sheet: "Save-progress sheet", reconnect: "Reconnect sheet", taster: "First session", feedback: "Feedback" };
 const KPI_HELP = {
   installs: "the first time Syllabo opens on a new device",
-  active: "devices that opened Syllabo that day (the tile shows the daily average)",
+  active: "devices that opened Syllabo that day, from 1.9.4 (earlier builds counted background wakes)",
+  sessions_started: "study sessions students started (each one a tap, so background wakes can't add to it)",
   setup_done: "students who reached the end of setup",
   sessions_finished: "study sessions finished to the end",
   accounts: "new online accounts, from guests saving progress or new sign-ups",
@@ -828,7 +844,7 @@ const CHOICE = { apple: "Apple", google: "Google", email: "Email", not_now: "Not
 // ---------- pages ----------
 const KPIS = [
   { key: "installs", label: "New installs", series: "installs" },
-  { key: "active", label: "Avg daily active", series: "active", perDay: true },
+  { key: "sessions_started", label: "Sessions started", series: "sessions_started" },
   { key: "setup_done", label: "Finished setup", series: "setup_done" },
   { key: "sessions_finished", label: "Sessions finished", series: "sessions_finished" },
   { key: "accounts", label: "Accounts created", series: "accounts" },
@@ -838,9 +854,9 @@ const KPIS = [
 function healthCard(d) {
   const steps = d.setup_steps || [], t = d.totals, p = d.previous;
   const stepN = (name) => steps.find((x) => x.step === name)?.n || 0;
-  const today = new Date(d.to + "T00:00:00Z");
-  const newestReady = (n) => (d.retention || []).slice().reverse().find((r) => (today - new Date(r.week + "T00:00:00Z")) / 86400000 >= n + 6 && r.installs > 0);
-  const r1 = newestReady(1), r7 = newestReady(7);
+  // Returns from accounts (usage_real_activity): opens before 1.9.4 counted background wakes, so they can't be used.
+  const accRow = (n) => (state.real?.acc_ret?.rows || []).find((x) => x.n === n && x.eligible > 0);
+  const a1 = accRow(1), a7 = accRow(7), noReal = state.real ? "No accounts old enough yet" : "Run usage_real_activity.sql";
   const ratio = (a, b) => (b > 0 ? (a / b) * 100 : null);
   const pts = (cur, prev, goodUp = true, unit = " pts") => {
     if (cur == null || prev == null) return h("div", { class: "delta" }, "");
@@ -852,7 +868,7 @@ function healthCard(d) {
     h("div", { class: "label" }, label), h("div", { class: "value" }, value == null ? "–" : `${fmt1(value)}${label.startsWith("Problems") ? "" : "%"}`),
     h("div", { class: "basis" }, basis), delta);
   const setupNow = ratio(t.setup_done, t.installs), setupPrev = ratio(p.setup_done, p.installs);
-  const probNow = ratio(t.problems, t.active), probPrev = ratio(p.problems, p.active);
+  const probNow = ratio(t.problems, t.sessions_started), probPrev = ratio(p.problems, p.sessions_started);
   return h("div", { class: "card" },
     h("h3", {}, "Weekly health"),
     h("div", { class: "health" },
@@ -861,26 +877,46 @@ function healthCard(d) {
       metric("First session finished", ratio(stepN("taster finished"), stepN("taster started")),
         stepN("taster started") ? `${fmt(stepN("taster finished"))} of ${fmt(stepN("taster started"))} first sessions` : "No first sessions yet",
         h("div", { class: "delta" }, "")),
-      metric("Day 1 return", r1 ? ratio(r1.d1, r1.installs) : null, r1 ? `Installed week of ${dayLabel(r1.week)}` : "Not enough days yet",
+      metric("Accounts back after day 1", a1 ? ratio(a1.back, a1.eligible) : null, a1 ? `${fmt(a1.back)} of ${fmt(a1.eligible)} accounts active a day or more after sign-up` : noReal,
         h("div", { class: "delta" }, "")),
-      metric("Day 7 return", r7 ? ratio(r7.d7, r7.installs) : null, r7 ? `Installed week of ${dayLabel(r7.week)}` : "Not enough days yet",
+      metric("Accounts back after day 7", a7 ? ratio(a7.back, a7.eligible) : null, a7 ? `${fmt(a7.back)} of ${fmt(a7.eligible)} accounts active a week or more after sign-up` : noReal,
         h("div", { class: "delta" }, "")),
-      metric("Problems per 100 days", probNow, t.active ? `${fmt(t.problems)} problems over ${fmt(t.active)} active days` : "No active days yet",
+      metric("Problems per 100 sessions", probNow, t.sessions_started ? `${fmt(t.problems)} problems in ${fmt(t.sessions_started)} sessions started` : "No sessions yet",
         pts(probNow, probPrev, false, ""))));
+}
+
+/** People we can count for certain: accounts and guests (usage_real_activity). Opens before 1.9.4 counted background
+ *  wakes, so daily active devices for every student only come back with 1.9.4. */
+function peopleCard() {
+  const r = state.real;
+  if (!r) return h("div", { class: "notice" }, h("div", {}, h("b", {}, "Real people counts didn't load. "),
+    `${state.realError ? state.realError + " " : ""}If the function isn't on the server yet, run Tools/supabase/usage_real_activity.sql in the SQL Editor.`));
+  const w = (k) => (r.people || []).find((p) => p.window === k) || { accounts: 0, guests: 0 };
+  const sum = (p) => p.accounts + p.guests;
+  const tile = (label, p) => h("div", { class: "hm" }, h("div", { class: "label" }, label), h("div", { class: "value" }, fmt(sum(p))),
+    h("div", { class: "basis" }, `${fmt(p.accounts)} accounts + ${fmt(p.guests)} guests`));
+  const d1 = w("24h"), d7 = w("7d"), d28 = w("28d");
+  return h("div", { class: "card" }, h("h3", {}, "Real people"),
+    h("p", { class: "sub" }, "Accounts that signed in, backed up after studying or used AI, and guests who used AI. Students with no account who never used AI aren't on the server, so these are floors. Daily active devices for every student return with 1.9.4, when background wakes stop counting as opens."),
+    h("div", { class: "health four" }, tile("Active, last 24 hours", d1), tile("Active, last 7 days", d7), tile("Active, last 28 days", d28),
+      h("div", { class: "hm" }, h("div", { class: "label" }, "Daily ÷ monthly"),
+        h("div", { class: "value" }, sum(d28) ? `${fmt1((100 * sum(d1)) / sum(d28))}%` : "–"),
+        h("div", { class: "basis" }, "Last 24 hours ÷ last 28 days"))));
 }
 
 /** One row a day, newest first. Click a column to sort, such as New installs for the biggest days. */
 function byDayCard(d) {
-  const cols = ["installs", "active", "setup_done", "sessions_finished", "accounts", "problems"];
+  const cols = ["installs", "sessions_started", "setup_done", "sessions_finished", "accounts", "problems"];
   const rows = d.daily.map((r) => [r.day === d.to ? `${dayLabel(r.day, true)} (so far)` : dayLabel(r.day, true), ...cols.map((k) => fmt(r[k]))]);
   return h("div", { class: "card" }, h("h3", {}, "By day"),
     h("p", { class: "sub" }, "New installs are first opens on a new device, not App Store downloads. Days run midnight to midnight UTC."),
-    h("div", { style: "max-height:380px;overflow:auto" }, table(["Day", "New installs", "Active devices", "Finished setup", "Sessions finished", "Accounts created", "Problems"], rows, [1, 2, 3, 4, 5, 6],
+    h("div", { style: "max-height:380px;overflow:auto" }, table(["Day", "New installs", "Sessions started", "Finished setup", "Sessions finished", "Accounts created", "Problems"], rows, [1, 2, 3, 4, 5, 6],
       { id: "by-day", keys: d.daily.map((r) => [r.day, ...cols.map((k) => r[k])]), initial: { col: 0, dir: "desc" } })));
 }
 
 function overview(c, d) {
-  c.append(healthCard(d));
+  c.append(peopleCard());
+  c.append(h("div", { style: "margin-top:18px" }, healthCard(d)));
   const days = d.daily.map((r) => r.day);
   const card = h("div", { class: "card" });
   const tabs = h("div", { class: "kpis" });
@@ -912,11 +948,11 @@ function overview(c, d) {
       { name: "Finished first session", value: tasterDone },
       { name: "Made an account", value: d.totals.accounts },
     ].map((r) => ({ ...r, share: true, note: first ? `${pct(r.value, first)}%` : "" }))));
-  const devices = h("div", { class: "card" }, h("h3", {}, "Devices"), h("p", { class: "sub" }, "Days someone opened the app, by device type."),
+  const devices = h("div", { class: "card" }, h("h3", {}, "Devices"), h("p", { class: "sub" }, "New installs by device type (first opens)."),
     bars((d.platforms || []).map((p) => ({ name: PLATFORM[p.platform] || p.platform, value: p.n }))),
     h("h3", { style: "margin-top:18px" }, "App versions"),
-    h("p", { class: "sub" }, "Which app versions are in use. An old version hanging on means students haven't updated."),
-    table(["Version", "Days opened"], (d.versions || []).slice(0, 6).map((v) => [v.app_version, fmt(v.n)]), [1]));
+    h("p", { class: "sub" }, "Study sessions started, by app version. An old version hanging on means students haven't updated."),
+    table(["Version", "Sessions started"], (d.versions || []).slice(0, 6).map((v) => [v.app_version, fmt(v.n)]), [1]));
   const fbNew = state.feedback.filter((f) => f.status === "new");
   const latest = h("div", { class: "card" }, h("h3", {}, "Latest feedback"), h("p", { class: "sub" }, `${fbNew.length} new`),
     fbNew.length ? h("div", {}, fbNew.slice(0, 4).map((f) => h("div", { style: "padding:8px 0;border-bottom:1px solid var(--grid)" },
@@ -925,6 +961,18 @@ function overview(c, d) {
       h("button", { class: "btn small", style: "margin-top:10px", onclick: () => document.querySelector('.tab[data-page="feedback"]').click() }, "Open the inbox"))
       : h("div", { class: "empty" }, "Nothing new."));
   c.append(h("div", { class: "grid3" }, funnel, devices, latest));
+}
+
+// Open player reports (Tools/supabase/report_alerts.sql). Counts only; the reports themselves are read in the SQL Editor.
+function reportsNotice() {
+  if (state.reportsError) return h("div", { class: "notice" }, h("div", {}, h("b", {}, "The open player report count didn't load. "),
+    `${state.reportsError} If the function isn't on the server yet, run Tools/supabase/report_alerts.sql.`));
+  const r = state.reports; if (!r || !r.open) return null;
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  const age = Math.floor((Date.now() - new Date(r.oldest)) / 86400000);
+  return h("div", { class: "notice" }, h("div", {}, h("b", {}, `${plural(r.open, "open player report")}. `),
+    `${plural(r.players, "player")} reported, ${r.new_day} new in the last day; the oldest is ${age === 0 ? "from today" : `${plural(age, "day")} old`}. `,
+    "Read and close them in the SQL Editor (Tools/supabase/README.md, Reports and names). Apple asks for timely responses."));
 }
 
 function setup(c, d) {
@@ -947,21 +995,47 @@ function setup(c, d) {
 }
 
 function retention(c, d) {
-  const rows = d.retention || [];
-  const today = new Date(d.to + "T00:00:00Z");
-  const ready = (week, n) => (today - new Date(week + "T00:00:00Z")) / 86400000 >= n + 6;   // the whole week's installs are n days old
   const shade = (p) => { if (p == null) return ""; const steps = ["--seq-0", "--seq-1", "--seq-2", "--seq-3", "--seq-4", "--seq-5"]; const k = Math.min(5, Math.floor(p / 12)); return `background:var(${steps[k]});color:${k >= 3 ? "#fff" : "var(--ink)"}`; };
-  const cell = (week, n, v, installs) => {
-    if (!ready(week, n)) return h("span", { class: "cell pending", title: "Not enough days yet" }, "not yet");
-    const p = pct(v, installs);
-    return h("span", { class: "cell", style: shade(p), title: `${fmt(v)} of ${fmt(installs)}` }, p == null ? "–" : `${p}%`);
-  };
-  c.append(h("div", { class: "card" }, h("h3", {}, "Coming back"),
-    h("p", { class: "sub" }, "Of the students who installed in each week (Monday start), the share who opened the app again 1, 7 and 30 days later. Day counts are local to the phone, so a cohort can shift by a day."),
-    table(["Install week", "Installs", "Day 1", "Day 7", "Day 30"], rows.slice().reverse().map((r) => [dayLabel(r.week), fmt(r.installs), cell(r.week, 1, r.d1, r.installs), cell(r.week, 7, r.d7, r.installs), cell(r.week, 30, r.d30, r.installs)]), [1, 2, 3, 4])));
-  const days = d.daily.map((r) => r.day);
-  c.append(h("div", { class: "card", style: "margin-top:16px" }, h("h3", {}, "Active each day"), h("p", { class: "sub" }, "Phones, iPads and Macs that opened the app that day."),
-    lineChart(days, [{ name: "Active", color: "--s1", values: d.daily.map((r) => r.active) }], { height: 220 })));
+  const pending = () => h("span", { class: "cell pending", title: "Not enough days yet" }, "not yet");
+  const cellOf = (v, base) => { if (!base) return pending(); const p = pct(v, base); return h("span", { class: "cell", style: shade(p), title: `${fmt(v)} of ${fmt(base)}` }, `${p}%`); };
+  const r = state.real;
+  if (!r) {
+    c.append(h("div", { class: "notice" }, h("div", {}, h("b", {}, "Account returns didn't load. "),
+      `${state.realError ? state.realError + " " : ""}If the function isn't on the server yet, run Tools/supabase/usage_real_activity.sql in the SQL Editor.`)));
+  } else {
+    const rows = r.acc_ret?.rows || [], fixed = r.acc_ret?.fixed || [];
+    const fx = (n) => fixed.find((x) => x.n === n);
+    const share = (x) => (x && x.eligible ? `${pct(x.back, x.eligible)}%` : "–");
+    const of = (x) => (x && x.eligible ? `${fmt(x.back)} of ${fmt(x.eligible)}` : "–");
+    c.append(h("div", { class: "card" }, h("h3", {}, "Accounts: still active after signing up"),
+      h("p", { class: "sub" }, "Of accounts old enough, the share whose last activity (sign-in, backup after studying, or AI use) came N days or more after signing up. Same group follows the accounts at least 15 days old through every row; All old enough uses every account old enough for each row. Accounts only, so higher than over all installs. Apple counts people active on exactly day N, so its figures are lower."),
+      table(["Still active", "Same group", "Same group, accounts", "All old enough", "All old enough, accounts"],
+        rows.map((x) => [`Day ${x.n} or later`, share(fx(x.n)), of(fx(x.n)), share(x), of(x)]), [1, 2, 3, 4], { id: "acc-ret", keys: rows.map((x) => [x.n, null, null, null, null]) }),
+      r.acc_ret?.one_day_base ? h("p", { class: "caption", style: "margin-top:12px" },
+        h("b", {}, `${pct(r.acc_ret.one_day_only, r.acc_ret.one_day_base)}%`),
+        ` of accounts at least 8 days old were never active after their first 24 hours (${fmt(r.acc_ret.one_day_only)} of ${fmt(r.acc_ret.one_day_base)}).`) : null));
+    const weeks = (r.acc_weeks || []).slice().reverse();
+    c.append(h("div", { class: "card", style: "margin-top:16px" }, h("h3", {}, "Accounts by sign-up week"),
+      h("p", { class: "sub" }, "Same measure, by the week the account was made (Monday start, UTC). A cell counts only accounts old enough for it."),
+      table(["Sign-up week", "Accounts", "Day 1+", "Day 7+", "Day 14+", "Day 30+"],
+        weeks.map((w) => [dayLabel(w.week), fmt(w.accounts), cellOf(w.d1, w.base_d1), cellOf(w.d7, w.base_d7), cellOf(w.d14, w.base_d14), cellOf(w.d30, w.base_d30)]), [1, 2, 3, 4, 5])));
+  }
+  // Every student, by install week, from 1.9.4 only (usage_dashboard.sql): earlier builds counted background wakes as opens.
+  const ret = (d.retention || []).filter((x) => x.installs > 0);
+  const today = new Date(d.to + "T00:00:00Z");
+  const ready = (week, n) => (today - new Date(week + "T00:00:00Z")) / 86400000 >= n + 6;
+  c.append(h("div", { class: "card", style: "margin-top:16px" }, h("h3", {}, "Every student, from 1.9.4"),
+    h("p", { class: "sub" }, "Of phones first opened in each week on 1.9.4 or later, the share that opened the app again exactly 1, 7 and 30 days later, as Apple counts it. Builds before 1.9.4 counted background wakes as opens, so they are left out."),
+    ret.length ? table(["Install week", "Installs", "Day 1", "Day 7", "Day 30"], ret.slice().reverse().map((x) => [dayLabel(x.week), fmt(x.installs),
+      ready(x.week, 1) ? cellOf(x.d1, x.installs) : pending(), ready(x.week, 7) ? cellOf(x.d7, x.installs) : pending(), ready(x.week, 30) ? cellOf(x.d30, x.installs) : pending()]), [1, 2, 3, 4])
+      : h("div", { class: "empty" }, "Starts once students run 1.9.4.")));
+  if (r && (r.daily || []).length > 1) {
+    const ser = [{ name: "Study sessions started", color: "--s1", values: r.daily.map((x) => x.sessions_started) },
+                 { name: "People who used AI", color: "--s2", values: r.daily.map((x) => x.ai_accounts + x.ai_guests) }];
+    c.append(h("div", { class: "card", style: "margin-top:16px" }, h("h3", {}, "Each day"),
+      h("p", { class: "sub" }, "Study sessions started (every student; one student can start several) and accounts and guests who used AI (exact people)."),
+      legend(ser), lineChart(r.daily.map((x) => x.day), ser, { height: 220, area: false })));
+  }
 }
 
 function sessions(c, d) {
@@ -983,12 +1057,38 @@ function sessions(c, d) {
 
 function problems(c, d) {
   const days = d.daily.map((r) => r.day);
-  c.append(h("div", { class: "card" }, h("h3", {}, "Problems each day"), h("p", { class: "sub" }, "Failures the app counted: AI marking, sign-in, saving and opening progress."),
+  c.append(crashCard(state.diag));
+  c.append(h("div", { class: "card", style: "margin-top:16px" }, h("h3", {}, "Problems each day"), h("p", { class: "sub" }, "Failures the app counted: AI marking, sign-in, saving and opening progress."),
     lineChart(days, [{ name: "Problems", color: "--s2", values: d.daily.map((r) => r.problems) }], { height: 220, area: false })));
   c.append(h("div", { class: "card", style: "margin-top:16px" }, h("h3", {}, "By type"),
     h("p", { class: "sub" }, "Most common first. Hover a code for its short name."),
     table(["What failed", "What it means", "Where", "Times"], (d.problems || []).map((p) => [PROBLEM[p.name] || p.name,
       h("span", { title: p.code || "" }, codeText(p.code)), PLACE[p.place] || p.place || "–", fmt(p.n)]), [3])));
+}
+
+/** Crashes and hangs iOS reported (MetricKit, the `app_diagnostic` event): totals, per 100 active days, by version. */
+function crashCard(g) {
+  const card = (...kids) => h("div", { class: "card" }, h("h3", {}, "Crashes and hangs"), ...kids);
+  if (!g || g.error) {
+    const missing = g && /usage_diagnostics/.test(g.error) && /function|exist/i.test(g.error);
+    return card(h("p", { class: "sub" }, missing ? "Not on the server yet. Run Tools/supabase/usage_diagnostics.sql in the SQL Editor." : (g?.error || "Not loaded.")));
+  }
+  const t = g.totals || {}, p = g.previous || {};
+  const per = (n, a) => (a > 0 ? Math.round((n / a) * 1000) / 10 : null);
+  const tile = (label, n, prev, active) => {
+    const diff = n - prev;
+    return h("div", { class: "hm" }, h("div", { class: "label" }, label), h("div", { class: "value" }, fmt(n)),
+      h("div", { class: "basis" }, active ? `${fmt1(per(n, active))} per 100 sessions started` : "No sessions yet"),
+      h("div", { class: "delta " + (diff === 0 ? "" : diff < 0 ? "up" : "down") }, diff === 0 ? "no change" : `${diff > 0 ? "↑" : "↓"} ${fmt(Math.abs(diff))} vs previous`));
+  };
+  const days = (g.daily || []).map((r) => r.day);
+  return card(h("p", { class: "sub" }, "Reported by iOS on the next launch after a crash or a freeze of a few seconds. Counts only, from students with usage counts on."),
+    // Per session, not per "active day": up to 1.9.3 background wakes counted as active days (17 Nov audit).
+    h("div", { class: "health" }, tile("Crashes", t.crashes || 0, p.crashes || 0, state.data?.totals?.sessions_started), tile("Hangs", t.hangs || 0, p.hangs || 0, state.data?.totals?.sessions_started)),
+    (t.crashes || t.hangs) ? lineChart(days, [{ name: "Crashes", color: "--s2", values: g.daily.map((r) => r.crashes) }, { name: "Hangs", color: "--s1", values: g.daily.map((r) => r.hangs) }], { height: 160, area: false }) : null,
+    (g.versions || []).length ? table(["Version", "Crashes", "Hangs", "From an earlier build"],
+      g.versions.map((v) => [v.app_version, fmt(v.crashes), fmt(v.hangs), fmt(v.earlier)]), [1, 2, 3])
+      : h("div", { class: "empty" }, "No crashes or hangs reported in this period."));
 }
 
 function feedback(c, d) {
@@ -1018,7 +1118,7 @@ function feedback(c, d) {
         f.question_id ? h("span", {}, `Question ${f.question_id}`) : null,
         f.subject ? h("span", {}, `${f.subject}${f.level ? " " + f.level : ""}`) : null,
         f.answer ? h("span", {}, `Their answer: ${f.answer}${f.mark ? ` (${f.mark})` : ""}`) : null,
-        ctx.app_version ? h("span", {}, `${ctx.app_version} · ${PLATFORM[ctx.platform] || ctx.platform} · iOS ${ctx.os_major} · day ${ctx.days_since_install}`) : null,
+        ctx.app_version ? h("span", {}, `${ctx.app_version} · ${PLATFORM[ctx.platform] || ctx.platform} · ${ctx.platform === "android" ? "Android" : "iOS"} ${ctx.os_major} · day ${ctx.days_since_install}`) : null,
         f.contact ? h("span", {}, "Reply to ", PLAIN_EMAIL.test(f.contact)
           ? h("a", { href: `mailto:${f.contact}?subject=${encodeURIComponent("Your Syllabo feedback")}` }, f.contact) : f.contact) : h("span", { class: "note" }, "Anonymous")),
       crumbs.length ? h("details", {}, h("summary", {}, `The ${crumbs.length} steps before it, newest first`),
@@ -1225,6 +1325,27 @@ function demoData(days) {
     tours_skipped: [{ tour: "main", step: "practiceTab", n: 22 }, { tour: "learn", step: "units", n: 9 }],
     feedback: { new: 3, seen: 4, done: 2, faces: { good: 31, okay: 12, bad: 5 } },
   };
+}
+function demoReal(days) {
+  const r = rng(days * 11 + 5), to = new Date(); to.setUTCHours(0, 0, 0, 0);
+  const daily = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const dt = new Date(to - i * 86400000), s = Math.round(380 + r() * 260);
+    daily.push({ day: dt.toISOString().slice(0, 10), sessions_started: s, sessions_finished: Math.round(s * (0.3 + r() * 0.1)), ai_accounts: Math.round(60 + r() * 50), ai_guests: Math.round(8 + r() * 20) });
+  }
+  const rows = [[1, 1100, 600], [2, 1080, 500], [3, 1050, 430], [7, 840, 230], [14, 320, 50], [30, 20, 4]].map(([n, eligible, back]) => ({ n, eligible, back }));
+  const fixed = [[1, 190], [2, 165], [3, 145], [7, 100], [14, 50]].map(([n, back]) => ({ n, eligible: 320, back }));
+  const weeks = [0, 1, 2, 3, 4].map((k) => { const w = new Date(to - (4 - k) * 7 * 86400000); const mon = new Date(w - ((w.getUTCDay() + 6) % 7) * 86400000); const n = [8, 220, 600, 330, 40][k]; const old = (m) => (4 - k) * 7 >= m + 1;
+    return { week: mon.toISOString().slice(0, 10), accounts: n, base_d1: old(1) ? n : 0, d1: Math.round(n * 0.55), base_d7: old(7) ? n : 0, d7: Math.round(n * 0.28), base_d14: old(14) ? n : 0, d14: Math.round(n * 0.15), base_d30: old(30) ? n : 0, d30: Math.round(n * 0.1) }; });
+  return { generated_at: new Date().toISOString(), people: [{ window: "24h", accounts: 160, guests: 25 }, { window: "7d", accounts: 580, guests: 130 }, { window: "28d", accounts: 1150, guests: 520 }],
+    totals: { accounts: 1200, guests: 540, new_accounts: 260 }, daily, acc_ret: { rows, fixed, one_day_only: 360, one_day_base: 840 }, acc_weeks: weeks };
+}
+function demoDiag(days) {
+  const r = rng(days * 5 + 1), to = new Date(); to.setUTCHours(0, 0, 0, 0);
+  const daily = []; for (let i = days - 1; i >= 0; i--) daily.push({ day: new Date(to - i * 86400000).toISOString().slice(0, 10), crashes: r() < 0.3 ? 1 + Math.round(r() * 2) : 0, hangs: r() < 0.4 ? 1 : 0 });
+  const crashes = daily.reduce((a, x) => a + x.crashes, 0), hangs = daily.reduce((a, x) => a + x.hangs, 0);
+  return { days, totals: { crashes, hangs, active: days * 60 }, previous: { crashes: crashes + 3, hangs: Math.max(0, hangs - 1), active: days * 55 }, daily,
+    versions: [{ app_version: "1.9.3", crashes: Math.round(crashes * 0.7), hangs, earlier: 1, active: days * 45 }, { app_version: "1.9.2", crashes: crashes - Math.round(crashes * 0.7), hangs: 0, earlier: 0, active: days * 15 }] };
 }
 function demoFeedback() {
   const now = Date.now(), ago = (h) => new Date(now - h * 3600000).toISOString();
