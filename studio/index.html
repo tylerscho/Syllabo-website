@@ -930,7 +930,7 @@ function byDayCard(d) {
   const card = h("div", { class: "card" },
     h("div", { style: "display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap" }, h("h3", {}, "By day"),
       h("label", { class: "note", style: "display:flex;align-items:center;gap:8px" }, "Look up a day", pick)),
-    h("p", { class: "sub" }, `People active: accounts and guests that backed up after studying, uploaded their friend summary or used AI that day (exact people)${from ? `, counted from ${dayLabel(from)}` : ", once usage_active_days.sql is run"}. Used AI: people who used AI that day. Students with no account who never used AI only show up from 1.9.4. New installs are first opens on a new device, not App Store downloads. Days run midnight to midnight UTC.`),
+    h("p", { class: "sub" }, `People active: accounts that started a study session (from their backup) or used AI that day, and guests who used AI (exact people)${from ? `, from ${dayLabel(from)}` : ", once usage_active_days.sql is run"}. Used AI: people who used AI that day. Students with no account who never used AI only show up from 1.9.4. New installs are first opens on a new device, not App Store downloads. Days run midnight to midnight UTC.`),
     h("div", { style: "max-height:380px;overflow:auto" }, table(["Day", "People active", "Used AI", "New installs", "Sessions started", "Finished setup", "Sessions finished", "Accounts created", "Problems"], rows, [1, 2, 3, 4, 5, 6, 7, 8],
       { id: "by-day", keys: d.daily.map((r) => [r.day, people(r.day), ai(r.day), ...cols.map((k) => r[k])]), initial: { col: 0, dir: "desc" },
         rowAttrs: (i) => (d.daily[i].day === state.lookup ? { class: "hl" } : {}) })));
