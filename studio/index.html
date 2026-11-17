@@ -263,6 +263,7 @@ th .arrow { display: inline-block; min-width: .8em; color: var(--accent); }
 .bar-row:hover .name { color: var(--ink); }
 tbody tr { transition: background-color .2s; }
 tbody tr:hover { background: var(--wash); }
+tbody tr.hl, tbody tr.hl:hover { background: var(--s1-fill); box-shadow: inset 3px 0 0 var(--s1); }
 .fb { transition: box-shadow .4s var(--ease), transform .5s var(--ease); }
 .fb:hover { box-shadow: 0 1px 1.5px rgba(11,19,34,.06), 0 18px 34px -20px rgba(11,19,34,.35); }
 .tip { transition: opacity .15s; }
@@ -906,12 +907,35 @@ function peopleCard() {
 
 /** One row a day, newest first. Click a column to sort, such as New installs for the biggest days. */
 function byDayCard(d) {
+  // Exact people per day (usage_real_activity): accounts and guests active from the day usage_active_days.sql ran, and
+  // people who used AI on every day. Daily active devices for every student come back with 1.9.4.
+  const real = Object.fromEntries((state.real?.daily || []).map((x) => [x.day, x]));
+  const from = state.real?.tracked_from || null;
+  const people = (day) => { const x = real[day]; if (!x || x.active_accounts == null || (from && day < from)) return null; return x.active_accounts + x.active_guests; };
+  const ai = (day) => { const x = real[day]; return x ? x.ai_accounts + x.ai_guests : null; };
+  const peopleCell = (day) => { const n = people(day), x = real[day];
+    return n == null ? h("span", { class: "note", title: from ? `Counted from ${dayLabel(from)}` : "Run usage_active_days.sql to start counting" }, "–")
+      : h("span", { title: `${fmt(x.active_accounts)} accounts + ${fmt(x.active_guests)} guests` }, fmt(n)); };
   const cols = ["installs", "sessions_started", "setup_done", "sessions_finished", "accounts", "problems"];
-  const rows = d.daily.map((r) => [r.day === d.to ? `${dayLabel(r.day, true)} (so far)` : dayLabel(r.day, true), ...cols.map((k) => fmt(r[k]))]);
-  return h("div", { class: "card" }, h("h3", {}, "By day"),
-    h("p", { class: "sub" }, "New installs are first opens on a new device, not App Store downloads. Days run midnight to midnight UTC."),
-    h("div", { style: "max-height:380px;overflow:auto" }, table(["Day", "New installs", "Sessions started", "Finished setup", "Sessions finished", "Accounts created", "Problems"], rows, [1, 2, 3, 4, 5, 6],
-      { id: "by-day", keys: d.daily.map((r) => [r.day, ...cols.map((k) => r[k])]), initial: { col: 0, dir: "desc" } })));
+  const rows = d.daily.map((r) => [r.day === d.to ? `${dayLabel(r.day, true)} (so far)` : dayLabel(r.day, true), peopleCell(r.day), fmt(ai(r.day)), ...cols.map((k) => fmt(r[k]))]);
+  // Look up one day: widens the range to the shortest one that reaches it, then marks its row.
+  const today = d.to;
+  const pick = h("input", { type: "date", class: "search", style: "width:auto", max: today, value: state.lookup || "", "aria-label": "Look up a day", onchange: (e) => {
+    const v = e.target.value; if (!v) { state.lookup = null; render(); return; }
+    state.lookup = v;
+    const need = Math.round((new Date(today + "T00:00:00Z") - new Date(v + "T00:00:00Z")) / 86400000) + 1;
+    const fit = [7, 28, 90, 365].find((x) => x >= need) || 365;
+    if (fit > state.days) { const b = document.querySelector(`#range button[data-days="${fit}"]`); if (b) b.click(); else { state.days = fit; load(); } } else render();
+  } });
+  const card = h("div", { class: "card" },
+    h("div", { style: "display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap" }, h("h3", {}, "By day"),
+      h("label", { class: "note", style: "display:flex;align-items:center;gap:8px" }, "Look up a day", pick)),
+    h("p", { class: "sub" }, `People active: accounts and guests that backed up after studying, uploaded their friend summary or used AI that day (exact people)${from ? `, counted from ${dayLabel(from)}` : ", once usage_active_days.sql is run"}. Used AI: people who used AI that day. Students with no account who never used AI only show up from 1.9.4. New installs are first opens on a new device, not App Store downloads. Days run midnight to midnight UTC.`),
+    h("div", { style: "max-height:380px;overflow:auto" }, table(["Day", "People active", "Used AI", "New installs", "Sessions started", "Finished setup", "Sessions finished", "Accounts created", "Problems"], rows, [1, 2, 3, 4, 5, 6, 7, 8],
+      { id: "by-day", keys: d.daily.map((r) => [r.day, people(r.day), ai(r.day), ...cols.map((k) => r[k])]), initial: { col: 0, dir: "desc" },
+        rowAttrs: (i) => (d.daily[i].day === state.lookup ? { class: "hl" } : {}) })));
+  if (state.lookup) requestAnimationFrame(() => card.querySelector("tr.hl")?.scrollIntoView({ block: "center" }));
+  return card;
 }
 
 function overview(c, d) {
@@ -1331,14 +1355,14 @@ function demoReal(days) {
   const daily = [];
   for (let i = days - 1; i >= 0; i--) {
     const dt = new Date(to - i * 86400000), s = Math.round(380 + r() * 260);
-    daily.push({ day: dt.toISOString().slice(0, 10), sessions_started: s, sessions_finished: Math.round(s * (0.3 + r() * 0.1)), ai_accounts: Math.round(60 + r() * 50), ai_guests: Math.round(8 + r() * 20) });
+    daily.push({ day: dt.toISOString().slice(0, 10), sessions_started: s, sessions_finished: Math.round(s * (0.3 + r() * 0.1)), ai_accounts: Math.round(60 + r() * 50), ai_guests: Math.round(8 + r() * 20), active_accounts: i <= 2 ? Math.round(150 + r() * 40) : null, active_guests: i <= 2 ? Math.round(10 + r() * 15) : null });
   }
   const rows = [[1, 1100, 600], [2, 1080, 500], [3, 1050, 430], [7, 840, 230], [14, 320, 50], [30, 20, 4]].map(([n, eligible, back]) => ({ n, eligible, back }));
   const fixed = [[1, 190], [2, 165], [3, 145], [7, 100], [14, 50]].map(([n, back]) => ({ n, eligible: 320, back }));
   const weeks = [0, 1, 2, 3, 4].map((k) => { const w = new Date(to - (4 - k) * 7 * 86400000); const mon = new Date(w - ((w.getUTCDay() + 6) % 7) * 86400000); const n = [8, 220, 600, 330, 40][k]; const old = (m) => (4 - k) * 7 >= m + 1;
     return { week: mon.toISOString().slice(0, 10), accounts: n, base_d1: old(1) ? n : 0, d1: Math.round(n * 0.55), base_d7: old(7) ? n : 0, d7: Math.round(n * 0.28), base_d14: old(14) ? n : 0, d14: Math.round(n * 0.15), base_d30: old(30) ? n : 0, d30: Math.round(n * 0.1) }; });
   return { generated_at: new Date().toISOString(), people: [{ window: "24h", accounts: 160, guests: 25 }, { window: "7d", accounts: 580, guests: 130 }, { window: "28d", accounts: 1150, guests: 520 }],
-    totals: { accounts: 1200, guests: 540, new_accounts: 260 }, daily, acc_ret: { rows, fixed, one_day_only: 360, one_day_base: 840 }, acc_weeks: weeks };
+    totals: { accounts: 1200, guests: 540, new_accounts: 260 }, daily, tracked_from: daily[Math.max(0, daily.length - 3)].day, acc_ret: { rows, fixed, one_day_only: 360, one_day_base: 840 }, acc_weeks: weeks };
 }
 function demoDiag(days) {
   const r = rng(days * 5 + 1), to = new Date(); to.setUTCHours(0, 0, 0, 0);
