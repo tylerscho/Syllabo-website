@@ -22,8 +22,8 @@
     shared on 8 Oct 2026: googly eyes, a hit that knocks the letters loose, a spinning asterisk, an arrow that uncurls).
   Type: Archivo (wdth 125) for display, Poppins for body, Instrument Serif italic for accent words only.
 -->
-<title>Syllabo: the study app that fits the time you have</title>
-<meta name="description" content="Syllabo turns 5 to 60 minute gaps into IB Diploma progress: sessions built from your weak spots, exam-format questions with marking, flashcards, a tutor that knows your syllabus, and a study buddy that grows with your streak. More courses in beta.">
+<title>Syllabo | IB revision app for Diploma students</title>
+<meta name="description" content="Revise for the IB Diploma with Syllabo. Get exam-style questions with feedback, flashcards and study sessions built around your weak topics.">
 <meta name="theme-color" content="#F6F5F1">
 <meta name="color-scheme" content="light">
 <meta name="format-detection" content="telephone=no">
@@ -34,13 +34,17 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Syllabo">
 <meta property="og:url" content="https://syllabo.org/">
-<meta property="og:title" content="Syllabo: the study app that fits the time you have">
-<meta property="og:description" content="The study app that fits the time you have.">
+<meta property="og:title" content="Syllabo | IB revision app for Diploma students">
+<meta property="og:description" content="Revise for the IB Diploma with exam-style questions, flashcards and short sessions built around your weak topics.">
 <meta property="og:image" content="https://syllabo.org/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The Syllabo wordmark with an XP chip, a streak, a syllabus point and a grade 7, above the line: Your syllabus, one session at a time.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Syllabo | IB revision app for Diploma students">
+<meta name="twitter:description" content="Exam-style questions, flashcards and short sessions for the IB Diploma.">
+<meta name="twitter:image" content="https://syllabo.org/assets/og.png">
+<meta name="twitter:image:alt" content="Syllabo wordmark and illustrations of study progress.">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Syllabo","description":"A study app for the IB Diploma and more: sessions built from your weak spots, exam-format questions with marking, flashcards, a tutor that knows your syllabus and a study buddy.","applicationCategory":"EducationalApplication","operatingSystem":"iOS, iPadOS, macOS","url":"https://syllabo.org/","downloadUrl":"https://apps.apple.com/app/syllabo/id6810865998","image":"https://syllabo.org/assets/og.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
 <link rel="icon" href="assets/favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
@@ -666,6 +670,12 @@ html.js .big.fill .acc:not(.drawn) .spark{transform:scale(0)}
 .qs .aw{display:inline-block}
 .qs .a a{color:var(--blue)}
 
+/* ---------- revision resources ---------- */
+.revision{padding:clamp(48px,8vw,96px) var(--pad);border-top:1px solid var(--line)}
+.revision .inner{max-width:var(--max);margin:0 auto}
+.revision h2{font-size:clamp(32px,6vw,80px);line-height:1}
+.revision p{max-width:66ch;margin-top:16px;color:var(--ink-2)}
+
 /* ---------- final CTA + footer ---------- */
 .cta{padding:clamp(40px,6vw,80px) var(--pad) clamp(90px,10vw,140px);border-top:1px solid var(--line)}
 .cta .inner{max-width:var(--max);margin:0 auto}
@@ -1181,6 +1191,17 @@ html.js .big.fill .acc:not(.drawn) .spark{transform:scale(0)}
   </div>
 </section>
 
+<section class="revision" id="revision" aria-labelledby="revision-heading">
+  <div class="inner">
+    <h2 id="revision-heading" class="disp">Free IB revision resources</h2>
+    <p>Try original practice questions with marking points for <a class="inline" href="/revision/biology/">Biology</a>,
+      <a class="inline" href="/revision/economics/">Economics</a> and <a class="inline" href="/revision/maths-aa/">Maths AA</a>.</p>
+    <p>Work out your total with the <a class="inline" href="/revision/points-calculator/">IB points calculator</a>,
+      look up <a class="inline" href="/revision/command-terms/">command terms</a> or check your <a class="inline" href="/revision/exam-countdown/">exam countdown</a>.</p>
+    <p><a class="inline" href="/revision/">Browse IB revision resources</a></p>
+  </div>
+</section>
+
 <!-- ===================== FINAL CTA ===================== -->
 <section class="cta" id="download" aria-labelledby="cta-h">
   <div class="inner">
@@ -1200,7 +1221,7 @@ html.js .big.fill .acc:not(.drawn) .spark{transform:scale(0)}
 <footer class="site-foot" id="footer-nav">
   <div class="fcols">
     <div><a class="brand" href="#top"><span class="lk-icon"><img decoding="async" src="assets/icon.png" width="180" height="180" alt="" loading="lazy"></span><span class="lk-word" aria-hidden="true">SYLLABO<svg class="lk-spark" viewBox="0 0 40 40" focusable="false"><path d="M20 2Q23 17 38 20 23 23 20 38 17 23 2 20 17 17 20 2Z"/></svg></span><span class="sr">Syllabo</span></a><p>A personal study app for the IB Diploma. Built in Singapore for the minutes between everything else.</p></div>
-    <nav aria-labelledby="fh-p"><h2 class="fh" id="fh-p">Product</h2><ul><li><a class="ul" href="#product">Features</a></li><li><a class="ul" href="#compete">Leagues and duels</a></li><li><a class="ul" href="#how">How it works</a></li><li><a class="ul" href="#pricing">Pricing</a></li><li><a class="ul" href="#faq">FAQ</a></li><li><a class="ul" href="courses.html">AP® courses (beta)</a></li><li><a class="ul" href="android.html">Android (early access)</a></li></ul></nav>
+    <nav aria-labelledby="fh-p"><h2 class="fh" id="fh-p">Product</h2><ul><li><a class="ul" href="#product">Features</a></li><li><a class="ul" href="#compete">Leagues and duels</a></li><li><a class="ul" href="#how">How it works</a></li><li><a class="ul" href="#pricing">Pricing</a></li><li><a class="ul" href="/revision/">IB revision resources</a></li><li><a class="ul" href="#faq">FAQ</a></li><li><a class="ul" href="courses.html">AP® courses (beta)</a></li><li><a class="ul" href="android.html">Android (early access)</a></li></ul></nav>
     <nav aria-labelledby="fh-l"><h2 class="fh" id="fh-l">Legal</h2><ul><li><a class="ul" href="privacy.html">Privacy policy</a></li><li><a class="ul" href="terms.html">Terms of use</a></li></ul></nav>
     <div><h2 class="fh">Contact</h2><ul><li><a class="ul" href="support.html">Support</a></li><li><a class="ul" href="mailto:syllabosupport@gmail.com">syllabosupport@gmail.com</a></li></ul></div>
   </div>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IB points and predicted grades calculator | Syllabo</title>
+  <meta name="description" content="Enter six subject grades and your TOK and extended essay grades to calculate a Diploma points total out of 45. Use school predictions to estimate your predicted total.">
+  <link rel="canonical" href="https://syllabo.org/revision/points-calculator/">
+  <meta name="apple-itunes-app" content="app-id=6810865998">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Syllabo">
+  <meta property="og:url" content="https://syllabo.org/revision/points-calculator/">
+  <meta property="og:title" content="IB points and predicted grades calculator | Syllabo">
+  <meta property="og:description" content="Enter six subject grades and your TOK and extended essay grades to calculate a Diploma points total out of 45. Use school predictions to estimate your predicted total.">
+  <meta property="og:image" content="https://syllabo.org/assets/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="../../assets/favicon.ico">
+  <link rel="stylesheet" href="../../assets/fonts/fonts.css">
+  <link rel="stylesheet" href="../revision.css">
+  <script src="../points.js" defer></script>
+</head>
+<body>
+  <header><div class="wrap bar">
+    <a class="brand" href="../../">Syllabo</a>
+    <a class="button" href="https://apps.apple.com/app/syllabo/id6810865998">Get the app</a>
+  </div></header>
+  <main class="wrap">
+    <p><a href="../">Revision resources</a></p>
+    <h1>IB points and predicted grades calculator</h1>
+    <p class="lede">Enter six subject grades and your TOK and extended essay grades to calculate a Diploma points total out of 45. Use school predictions to estimate your predicted total.</p>
+
+    <form id="points-form">
+      <fieldset>
+        <legend>Subject grades (HL or SL)</legend>
+        <div class="fields">
+        <label>Subject 1<select id="subject1" required><option value="">Choose a grade</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></label>
+        <label>Subject 2<select id="subject2" required><option value="">Choose a grade</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></label>
+        <label>Subject 3<select id="subject3" required><option value="">Choose a grade</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></label>
+        <label>Subject 4<select id="subject4" required><option value="">Choose a grade</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></label>
+        <label>Subject 5<select id="subject5" required><option value="">Choose a grade</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></label>
+        <label>Subject 6<select id="subject6" required><option value="">Choose a grade</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Core grades</legend>
+        <div class="fields"><label>Theory of knowledge (TOK)<select id="tok" required><option value="">Choose a grade</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option></select></label><label>Extended essay (EE)<select id="ee" required><option value="">Choose a grade</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option></select></label></div>
+      </fieldset>
+      <button class="button" type="submit">Calculate points</button>
+      <output id="points-result" role="status" aria-live="polite"></output>
+    </form>
+    <noscript><p>Turn on JavaScript for the calculator, or follow the calculation below.</p></noscript>
+    <h2>How the total works</h2>
+    <p>Each of your six subjects contributes 1 to 7 points, at either HL or SL. TOK and the extended essay jointly add 0 to 3 points. For example, six grades of 6 give 36 subject points. A B in TOK and a C in the extended essay add 2, for 38 out of 45.</p>
+    <h2>Points, predicted grades and diploma eligibility</h2>
+    <p>Your school supplies the predicted grades. Use those grades here to calculate their total. Raw marks and grade boundaries depend on the course and exam session, so enter the 1 to 7 grades your school gives you. A Diploma also has subject-grade conditions, HL and SL minimums and CAS requirements. An E in either core component is a failing condition.</p>
+    <p><a href="https://www.ibo.org/about-the-ib/what-it-means-to-be-an-ib-student/recognizing-student-achievement/about-assessment/dp-passing-criteria/">Official Diploma passing criteria and TOK/EE matrix</a></p>
+    <p class="lede">The calculation runs in your browser. Your grades stay on this page.</p>
+
+  </main>
+  <footer><div class="wrap">
+    <a href="../">Revision resources</a> · <a href="../../support.html">Support</a>
+    <p>Syllabo is developed independently from and is not endorsed by the International Baccalaureate Organization. International Baccalaureate and IB are registered trademarks owned by the International Baccalaureate Organization.</p>
+  </div></footer>
+</body>
+</html>
